@@ -18,9 +18,10 @@ library(Matrix)
 library(reshape2)
 library(presto)
 
-#setwd("/home/baptiste/Desktop/PhD/smorfs functionalization/")
-setwd("/Users/baptiste/Desktop/smorfs functionalization/")
-#setwd("C:/Users/e0545037/Desktop/Baptiste/PhD/smorfs_functionalization/")
+# setwd("/home/baptiste/smORF-pro/")
+setwd("/home/baptiste/Desktop/PhD/smorfs functionalization/")
+# setwd("/Users/baptiste/Desktop/smorfs functionalization/")
+# setwd("C:/Users/e0545037/Desktop/Baptiste/PhD/smorfs_functionalization/")
 
 # Load functions
 
@@ -52,11 +53,11 @@ load("data/tpm_data.Rdata")
 # percentageID=percentageID[,c("Human","Rat","Mouse","Zebrafish")]
 
 GTex_Annotation=fread("Coexpression/GTEx_Analysis_v8_Annotations_SampleAttributesDS.csv")
-# GTex=fread("Coexpression/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct")
-# GTex$Name=gsub("\\..*","",GTex$Name)
-# GTex=as.data.frame(GTex)
-# GTex=GTex[!duplicated(GTex$Name),]
-# Genes_ID_Names=read.csv("Coexpression/Ensembl38_fCAT_V4_ID_L_Name.csv")
+GTex=fread("Coexpression/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct")
+GTex$Name=gsub("\\..*","",GTex$Name)
+GTex=as.data.frame(GTex)
+GTex=GTex[!duplicated(GTex$Name),]
+rownames(GTex)=GTex$Name
 
 
 pathways_to_use = c("c2.cp.kegg","c5.mf","c5.bp","c5.cc","h.all")
@@ -72,8 +73,8 @@ P=pathways_list
 P_to_run=c(P$c2.cp.kegg,P$c5.mf,P$c5.bp,P$c5.cc,P$h.all)
 
 
-sc_obj=readRDS("score_brain-hippocampus_sc_obj.rds")
-sc_obj=readRDS("score_Cells-Culturedfibroblasts_GO_obj.rds")
+sc_obj=readRDS("Coexpression//score_brain-hippocampus_sc_obj.rds")
+#sc_obj=readRDS("score_Cells-Culturedfibroblasts_GO_obj.rds")
 markers=wilcoxauc(sc_obj)
 
 # ui with tabs
@@ -189,19 +190,19 @@ server <- function(input, output, session) {
 
   # Coexpression tab ####
 
-  output$CoExpression_i=renderDataTable({
-    Tissue=input$Tissue_GTex
-    ORF=input$iORF_ID1
-    ORF_Gene_ID=Annotation$Gene_id[Annotation$iORF_id==ORF]
-    GTex_counts=GTex[,colnames(GTex)%in%c("Name",GTex_Annotation$SAMPID[GTex_Annotation$SMTSD==Tissue])]
-    rownames(GTex_counts)=make.names(names = GTex_counts$Name,unique = T)
-    GTex_counts=GTex_counts[,-1]
-    GTex_counts=GTex_counts[,GTex_counts[ORF_Gene_ID,]>1]
-    coexpr=corAndPvalue(t(GTex_counts),t(GTex_counts[ORF_Gene_ID,]))
-    coexpr=data.frame(Gene_ID=rownames(GTex_counts),cor=coexpr$cor,pval=coexpr$p)
-    colnames(coexpr)=c("Gene_ID","Correlation","pvalue")
-    coexpr
-  })
+  # output$CoExpression_i=renderDataTable({
+  #   Tissue=input$Tissue_GTex
+  #   ORF=input$iORF_ID1
+  #   ORF_Gene_ID=Annotation$Gene_id[Annotation$iORF_id==ORF]
+  #   GTex_counts=GTex[,colnames(GTex)%in%c("Name",GTex_Annotation$SAMPID[GTex_Annotation$SMTSD==Tissue])]
+  #   rownames(GTex_counts)=make.names(names = GTex_counts$Name,unique = T)
+  #   GTex_counts=GTex_counts[,-1]
+  #   GTex_counts=GTex_counts[,GTex_counts[ORF_Gene_ID,]>1]
+  #   coexpr=corAndPvalue(t(GTex_counts),t(GTex_counts[ORF_Gene_ID,]))
+  #   coexpr=data.frame(Gene_ID=rownames(GTex_counts),cor=coexpr$cor,pval=coexpr$p)
+  #   colnames(coexpr)=c("Gene_ID","Correlation","pvalue")
+  #   coexpr
+  # })
 
   output$GSEA_i=renderDataTable({
     # Tissue=input$Tissue_GTex
@@ -314,7 +315,7 @@ server <- function(input, output, session) {
 shinyApp(ui, server)
 
 
-#shiny::runApp("app.R")
+#shiny::runApp("/home/baptiste/smORF-pro/Main_app/app.R")
 
 
 

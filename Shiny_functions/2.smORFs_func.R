@@ -79,20 +79,14 @@ smORF_DE_plot=function(ORF="ENCT00000011417_ncRNA_3730"){ # Plot the LFC of the 
 }
 
 
+
 smORF_tpm_plot=function(ORF="ENCT00000011417_ncRNA_3730"){ # plot the tpm RNA and RIBO for a given smORF
   ribo_tpm=tpm_data[[3]]
   rna_tpm=tpm_data[[4]]
-  coldata_rna=tpm_data[[2]]
   coldata_ribo=tpm_data[[1]]
-
+  coldata_rna=tpm_data[[2]]
   ribo_i=ribo_tpm[rownames(ribo_tpm)==ORF,]
   rna_i=rna_tpm[rownames(rna_tpm)==ORF,]
-
-  if (Annotation$Source[which(Annotation$iORF_id==ORF)]=="Uniprot") {
-    ribo_i=ribo_tpm[rownames(ribo_tpm)==Annotation$Gene_id[which(Annotation$iORF_id==ORF)],]
-    rna_i=rna_tpm[rownames(rna_tpm)==Annotation$Gene_id[which(Annotation$iORF_id==ORF)],]
-  }
-
   df_i=data.frame(Tissue=coldata_ribo$V2,RNA=0,RIBO=0)
   for (i in unique(df_i$Tissue)) {
     df_i_tissue_i=which(df_i$Tissue==i)
@@ -104,6 +98,16 @@ smORF_tpm_plot=function(ORF="ENCT00000011417_ncRNA_3730"){ # plot the tpm RNA an
     df_i$RNA[df_i_tissue_i]=as.numeric(rna_i[sample_rna_tissue_i])
   }
   df_i$Tissue=as.factor(df_i$Tissue)
+
+
+  # GTex
+  IDs_to_keep=GTex_Annotation$SAMPID[GTex_Annotation$SAMPID%in%colnames(GTex)]
+  geneID=Annotation$Gene_id[Annotation$iORF_id==ORF]
+  df_gtex=data.frame(samp_ID=IDs_to_keep,Tissue=GTex_Annotation$SMTSD[GTex_Annotation$SAMPID%in%IDs_to_keep],RNA=0)
+
+  df_gtex$RNA=as.numeric(GTex[geneID,df_gtex$samp_ID])
+  df_i$Tissue=as.factor(df_i$Tissue)
+
   plot1=ggplot(df_i,aes(x=Tissue,y=RNA))+geom_boxplot(fill="deepskyblue1")+
     theme_bw()+xlab("")+ylab("TPM")+ggtitle("RNA expression")+
     theme(plot.title =element_text(hjust = 0.5),
@@ -112,7 +116,13 @@ smORF_tpm_plot=function(ORF="ENCT00000011417_ncRNA_3730"){ # plot the tpm RNA an
     theme_bw()+xlab("")+ylab("TPM")+ggtitle("RIBO expression")+
     theme(plot.title =element_text(hjust = 0.5),
           axis.text.x = element_text(angle = 45,hjust=1))
-  grid.arrange(plot1,plot2,ncol=2)
+  plot3=ggplot(df_gtex,aes(x=Tissue,y=RNA))+geom_boxplot(fill="deepskyblue1")+
+    theme_bw()+xlab("")+ylab("TPM")+ggtitle("RNA expression")+
+    theme(plot.title =element_text(hjust = 0.5),
+          axis.text.x = element_text(angle = 45,hjust=1))
+  grid.arrange(plot1,plot2,ncol=2,
+               nrow=2,plot3,
+               layout_matrix=rbind(c(1,2),c(3,3)))
 }
 
 min_padj=function(vec){
