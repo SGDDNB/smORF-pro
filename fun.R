@@ -173,5 +173,3 @@ bubble_GO=function(Gene="ENSG00000204954"){
     scale_color_gradient2()
 }
 
-
-
