@@ -157,19 +157,30 @@ CellTypeServer=function(id,selected_smORF){
 GeneOntologyUI=function(id){
   ns=NS(id)
   tabPanel(h5(HTML(paste("Pathway", "Signatures",sep = "<br/>")),align='center'),
+           selectInput(ns("gene_ID"),label = "Select an Ensembl gene ID",selected = "ENSG00000226688",choices=All_genes_files),
+           textOutput(ns("geneID")),
            titlePanel("RNA-seq Gene Ontology"),
-           plotOutput(ns("RNA_GO")),
+           #uiOutput(ns("geneID_ui")),
+           plotOutput(ns("RNA_GO"),height = "100%"),
            titlePanel("RIBO-seq Gene Ontology"),
            plotOutput(ns("RIBO_GO"))
   )
 }
 
 GeneOntologyServer=function(id,selected_smORF){
-  moduleServer(id,function(input,output,session){
-    output$RNA_GO=renderPlot({
+   moduleServer(id,function(input,output,session){
+  #   output$geneID_ui=renderUI({
+  #     load_smORF(selected_smORF())
+  #     selectInput("gene_ID",label = "Select an Ensembl gene ID",selected = smORF_object$geneID,choices=Annotation$Gene_id)
+  #   })
+    output$geneID=renderText({
       load_smORF(selected_smORF())
-      ggplot()
+      paste0(smORF_object$Name," is located on gene ",smORF_object$geneID)
     })
+    output$RNA_GO=renderPlot({
+      geneID_i=input$gene_ID
+      bubble_GO(geneID_i)
+    },height=1000)
     output$RIBO_GO=renderPlot({
       load_smORF(selected_smORF())
       ggplot()

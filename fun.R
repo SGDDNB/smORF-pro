@@ -2,12 +2,12 @@
 load_smORF=function(smORF_ID="smORF_ID"){
   if (!exists("smORF_object")) {
     file_name=paste0(smORF_ID,".rds")
-    smORF_selected=readRDS(file_name)
+    smORF_selected=readRDS(paste0("smORF_objects/",file_name))
     assign("smORF_object",smORF_selected,envir = .GlobalEnv)
   }
   if (exists("smORF_object")&smORF_object[["Name"]]!=smORF_ID) {
     file_name=paste0(smORF_ID,".rds")
-    smORF_selected=readRDS(file_name)
+    smORF_selected=readRDS(paste0("smORF_objects/",file_name))
     assign("smORF_object",smORF_selected,envir = .GlobalEnv)
   }
 }
@@ -76,8 +76,12 @@ plot_cell_sublocation_scale=function(){
     scale_x_continuous(limits = c(0.5,1.5), expand = c(0, 0))
 }
 
-# Read tree
+# Min function for min padj of bubble go to sort out pathways
+min_padj=function(vec){
+  order(vec)[1:n]
+}
 
+# Bubble plot for GO
 
 
 

@@ -101,9 +101,19 @@ vertebrate_data$uuid[vertebrate_data$species == "Myotis_lucifugus"] <-
 vertebrate_data$svg <- lapply(vertebrate_data$uuid, get_phylopic)
 
 
-
-
-
+# Load pathways
+pathways_to_use = c("c2.cp.kegg","c5.mf","c5.bp","c5.cc","h.all")
+pathways_list = list()
+path_gsea_annot="Coexpression/gsea_pathways/genename_annotations_downloaded_MSigDB_v6.2/"
+for(pathway in pathways_to_use){
+  pathway_anno = gmtPathways(paste(path_gsea_annot,pathway,".v6.2.symbols.gmt",sep=""))
+  pathways_list[[pathway]] = pathway_anno
+  Details=read.csv(paste(path_gsea_annot,pathway,".csv",sep = ""), header = FALSE)
+  #  MitoMatrix[[pathway]]=as.data.frame(Details$V1)
+}
+P=pathways_list
+P_to_run=c(P$c2.cp.kegg,P$c5.mf,P$c5.bp,P$c5.cc,P$h.all)
+saveRDS(P_to_run,"P_ro_run.rds")
 
 
 

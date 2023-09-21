@@ -125,12 +125,11 @@ smORF_tpm_plot=function(ORF="ENCT00000011417_ncRNA_3730"){ # plot the tpm RNA an
                layout_matrix=rbind(c(1,2),c(3,3)))
 }
 
-min_padj=function(vec){
+min_padj=function(vec,n=5){
   order(vec)[1:n]
 }
 
-bubble_GO=function(Gene="ENSG00000204954"){
-  n=5
+bubble_GO=function(Gene="ENSG00000204954",n=5){
   NES=fread(paste0("Coexpression/NES_per_gene/",Gene,".txt"))
   padj=fread(paste0("Coexpression/padj_per_gene/",Gene,".txt"))
 
@@ -172,4 +171,54 @@ bubble_GO=function(Gene="ENSG00000204954"){
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
     scale_color_gradient2()
 }
+
+clean_bubble_GO=function(Gene="ENSG00000204954",n=5){
+  NES=fread(paste0("Coexpression/NES_per_gene/",Gene,".txt"))
+  padj=fread(paste0("Coexpression/padj_per_gene/",Gene,".txt"))
+
+  NES$V1=substr(NES$V1,14,nchar(NES$V1)-nchar(Gene)-7)
+  colnames(NES)=c("Tissue",names(P_to_run))
+  padj$V1=substr(padj$V1,16,nchar(padj$V1)-nchar(Gene)-7)
+  colnames(padj)=c("Tissue",names(P_to_run))
+  NES=as.data.frame(NES)
+  padj=as.data.frame(padj)
+  NES_melted=melt(NES)
+  NES_melted=NES_melted[NES_melted$variable%in%clean_pathways,]
+  padj_melted=melt(padj)
+  padj_melted=padj_melted[padj_melted$variable%in%clean_pathways,]
+
+  df=data.frame(Tissue=NES_melted$Tissue,Pathways=NES_melted$variable,NES=NES_melted$value,padj=padj_melted$value)
+  path_selected=apply(padj[,-1],1,min_padj) # Select top n padj pathways
+  for (i in 1:nrow(padj)) {
+    path_selected[which(padj[i,path_selected[,i]+1]>0.05),i]=0
+  }
+  # unique pathways
+  path_selected=unique(c(path_selected))
+  if (0%in%path_selected) {
+    path_selected=path_selected[-which(path_selected==0)]
+  }
+  path_selected=colnames(padj[,-1])[path_selected]
+
+  toplot=df[df$Pathways%in%path_selected,]
+
+  score_df=as.data.frame(-log10(padj[,-1]*NES[,-1]))
+  score_df=score_df[,colnames(score_df)%in%path_selected]
+  rownames(score_df)=NES$Tissue
+  score_df[which(score_df=="NaN",arr.ind = T)]=0
+  score_df[which(score_df=="Inf",arr.ind = T)]=sort(unique(unlist(c(score_df))),decreasing = T)[2]
+
+  hclust_score <- hclust(dist(t(score_df)), method = "complete")
+  ordre=hclust_score$order
+
+  toplot$Pathways=factor(toplot$Pathways,levels=colnames(score_df)[ordre])
+
+  ggplot(toplot,aes(x=Tissue,y=Pathways,size=-log10(padj),col=NES))+
+    geom_point()+theme_classic()+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+    scale_color_gradient2()
+}
+
+
+
+
 
