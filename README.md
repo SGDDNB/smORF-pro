@@ -9,6 +9,7 @@ analysis:
 2. Genetic Information: Conservation, GWAS  
 3. Expression Specificity: GTex, RNA and RIBO, scRNAseq  
 4. Ontology and clustering: Correlation, GSEA, GSEA clustering  
+  
 Each of these categories uses different tools to run analyses and
 require a specific format. This page describes the data needed and
 format required for each. Categories 1 2 and 3 are independent so it is
