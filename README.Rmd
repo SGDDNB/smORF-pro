@@ -370,6 +370,7 @@ To functionalize the smORFs based on their expression pattern, we rely on coexpr
 ### Gene pairwise correlation analysis
 
 The first step is to run gene-gene and protein-protein pairwise genome-wide Spearman correlation. This can be done over all tissues / cell lines or per tissue / cell line if you have enough samples per tissue. We recommend at least 20 samples per tissue / cell type. It can be done the same way for GTex, RNA, and ribo data.
+For this analysis, we want to use only genes that are expressed in enough samples. For GTex we typically keep genes that have more than 1 TPM in at least half of the samples per tissue. Since smORFs usually show less reads on riboseq, we allow smORFs with more than 0 reads in at least half of the samples per tissues.
 
 ``` r
 library(data.table)
@@ -398,7 +399,7 @@ for (t in tissues) {
   print(t)
   if (t!="All") {
     counts_i=counts[,colnames(counts)%in%coldata_ribo$V1[coldata_ribo$V2==t]]
-    counts_i=counts_i[rowSums(counts_i>0)>=10,]
+    counts_i=counts_i[rowSums(counts_i>0)>=10,] # change here your threshold to keep only expressed genes.
 
     # Run correlation
     coexpr=corAndPvalue(t(counts_i), nThreads = 20) # change your nThreads number depending on your computer specs
@@ -427,7 +428,78 @@ for (t in tissues) {
 
 ### Ontology GTex, RNA, Ribo
 
-For ontology
+For ontology, we use pathways from MSigDb and the fgsea package. The pathways can be downloaded here: XXXX. For this section, we use the pairwise correlation analysis computed in the previous step. For every smORF, we ranked the proteins from the most correlated to the least correlated. We use this as an input for runnig the fgsea function. You can run gsea per tissue if you have enough samples or for all your samples together, similar to how you did your pairwise correlation in the previous step. Depending on how many smORFs you are running this step for, you might want to split your list of smORFs to run by batches on an HPC.\
+
+Let's start with an example on GTex:
+
+``` r
+
+tissue="Heart"
+
+corr=readRDS(paste0("GTex_coexpr_tables/coexpr_smORFs_",tissue,".RData"))
+corr=Matrix(corr,sparse = T)
+
+genes_of_interest=colnames(corr)
+
+short_gtf=read.csv("short_gtf.csv") # matching names between gene identifier and gene ID for protein coding genes.
+
+# Load the pathways
+pathways_to_use = c("c2.cp.kegg_legacy","c2.cp.kegg_medicus","c5.go.mf","c5.go.bp","c5.go.cc","h.all") # choose which pathwaysyou want to run.
+pathways_list = list()
+path_gsea_annot="gsea_pathways/msigdb_v2023.2.Hs_GMTs/"
+for(pathway in pathways_to_use){
+  pathway_anno = gmtPathways(paste(path_gsea_annot,pathway,".v2023.2.Hs.symbols.gmt",sep=""))
+  pathways_list[[pathway]] = pathway_anno
+}
+P=pathways_list
+P_to_run=c(P$c2.cp.kegg_legacy,P$c2.cp.kegg_medicus,P$c5.go.mf,P$c5.go.bp,P$c5.go.cc,P$h.all)
+
+# Run GSEA
+run_GSEA=function(gene=gene,corr=corr){
+  ranked_list=as.data.frame(cbind(make.names(short_gtf$gene_name[match(rownames(corr),short_gtf$gene_id)],unique = T),corr[,gene])) # Convert your gene ID to gene names for GSEA.
+  ranked_list[,2]=as.numeric(ranked_list[,2])
+  ranked_list=ranked_list[order(ranked_list[,2],decreasing = T),]
+
+  Rank_forgsea=as.numeric(ranked_list[-1,2]) #remove the gene itself from the ranked list
+  names(Rank_forgsea)=ranked_list[-1,1]
+
+  fgseaRes <- fgsea(pathways = P_to_run, stats = Rank_forgsea, minSize=10, maxSize=500)
+  output=data.frame(row.names = fgseaRes$pathway,NES=fgseaRes$NES,padj=fgseaRes$padj)
+  output=output[names(P_to_run),]
+  rownames(output)=names(P_to_run)
+  return(output)
+}
+
+corr2=corr[,genes_of_interest]
+
+head(genes_of_interest)
+
+# Start of the computationally heavy step
+cl=makeCluster(20)
+clusterExport(cl=cl, list("corr2","P_to_run","run_GSEA","genes_of_interest","short_gtf","fgsea"),
+              envir = environment())
+df = parSapply(cl=cl,1:length(genes_of_interest),function(j) run_GSEA(genes_of_interest[j],corr2))
+stopCluster(cl)
+
+print(dim(df))
+
+NES=data.frame(sapply(as.list(df[1,]), function(x) x[1:max(lengths(as.list(df[1,])))]))
+padj=data.frame(sapply(as.list(df[2,]), function(x) x[1:max(lengths(as.list(df[2,])))]))
+
+colnames(NES)=genes_of_interest
+colnames(padj)=genes_of_interest
+
+rownames(NES)=names(P_to_run)
+rownames(padj)=names(P_to_run)
+
+write.table(NES,paste0("GSEA_GTex/NES_matrices/NES_mat_",tissue,".txt"))
+write.table(padj,paste0("GSEA_GTex/padj_matrices/padj_mat_",tissue,".txt"))
+
+```
+
+
+
+
 
 ### Ribo ontology clustering
 
