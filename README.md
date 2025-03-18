@@ -132,6 +132,7 @@ It will create a tsv file with the summary from interproscan. Move this
 file to data_preparation/Amino_Acid_Analysis/
 
 ``` r
+library(data.table)
 interpro=fread("data_preparation/Amino_Acid_Analysis/interpro_example_output.tsv") # change name accordingly
 colnames(interpro)=c("smORF_ID","md5","length","Analysis","Signature_accession",
                      "Signature_description","start","stop","score","Status","Date",
@@ -279,7 +280,7 @@ dist_mat folders in the protein folder. Run the run_clustalo.sh script.
 
 In this section we describe how to use the smORF gtf to find mutations
 in their CDS region from GWAS catalog. You can download GWAS catalog
-from XXXX . The goal is to find if there are any overlpa, and in the
+from XXXX . The goal is to find if there are any overlap, and in the
 case of an overlap, if it results to a misense or non-sense mutation.
 
 ``` r
@@ -375,10 +376,10 @@ sample annotation file.
 
 ``` r
 # Example of RNA annotation file
-coldata_ribo=read.table("coldata_ribo.txt",header = F)
-rnaseq=fread("count.txt)
+coldata_rna=read.table("coldata_rna.txt",header = F)
+rnaseq=fread("count_rna.txt)
 
-# Make TPM
+# Make TPM for RNA
 L=rnaseq$Length
 x=rnaseq[,7:ncol(rnaseq)]/L
 TPM=t(t(x)*1e6/colSums(x))
@@ -393,10 +394,100 @@ write.csv(TPM,"RNA_TPM.csv",row.names = T)
 
 ### Ribo specificity
 
+Similar to RNA-seq, you can count your ribo-seq or public ribo-seq data
+using your gtf. The gtf made earlier can be used for that if you count
+using the orfCDS feature. Then just make your TPM and annotation file
+from your count table.
+
+``` r
+# Example of ribo annotation file
+coldata_ribo=read.table("coldata_ribo.txt",header = F)
+riboseq=fread("count_ribo.txt)
+
+# Make TPM for ribo
+L=riboseq$Length
+x=riboseq[,7:ncol(riboseq)]/L
+TPM=t(t(x)*1e6/colSums(x))
+TPM=as.data.frame(TPM)
+rownames(TPM)=make.names(riboseq$Geneid,unique = T)
+
+# colnames can't start with a number and - to replace with .
+colnames(TPM)=str_replace_all(colnames(TPM),"-",".")
+
+write.csv(TPM,"ribo_TPM.csv",row.names = T)
+```
+
 ## IV - Correlation analysis and Ontology
+
+To functionalize the smORFs based on their expression pattern, we rely
+on coexpression analysis and gene ontology. These parts are quite
+computationally heavy and may require the use of high-performance
+computer (HPC) depending on your computer specs.
 
 ### Gene pairwise correlation analysis
 
+The first step is to run gene-gene and protein-protein pairwise
+genome-wide Spearman correlation. This can be done over all tissues /
+cell lines or per tissue / cell line if you have enough samples per
+tissue. We recommend at least 20 samples per tissue / cell type. It can
+be done the same way for GTex, RNA, and ribo data.
+
+``` r
+library(data.table)
+library(WGCNA)
+library(gridExtra)
+library(stringr)
+library(tidyverse)
+library(dplyr)
+
+# Load data
+Annotation_smORFs=read.csv("~/smORF-pro/V2/data/Annotation_full.csv")
+TPM=read.csv("Expression/Counts/Atlas_Ribo_All_TPM.csv",row.names = 1)
+
+# Select tissues of interest
+
+
+load("~/Desktop/PhD/smorfs functionalization/data/tpm_data.Rdata")
+coldata_ribo=tpm_data[[1]]
+table(coldata_ribo$V2)
+#tissues=unique(coldata_ribo$V2)
+
+tissues=c("Fibroblasts","Heart DCM","All")
+counts=TPM
+
+for (t in tissues) {
+  print(t)
+  if (t!="All") {
+    counts_i=counts[,colnames(counts)%in%coldata_ribo$V1[coldata_ribo$V2==t]]
+    counts_i=counts_i[rowSums(counts_i>0)>=10,]
+
+    # Run correlation
+    coexpr=corAndPvalue(t(counts_i), nThreads = 20) # change your nThreads number depending on your computer specs
+    corr=coexpr$cor
+    pval=coexpr$p
+
+    # Set no significant correlations to a correlation of 0
+    #corr[which(pval>0.05,arr.ind = T)]=0
+    saveRDS(corr,file=paste0("Expression/Coexpression/Ribo/Coexpression_tables/coexpr_smORFs_Ribo_",t,".RData"))
+    saveRDS(pval,file=paste0("Expression/Coexpression/Ribo/Coexpression_tables/coexpr_smORFs_pval_Ribo_",t,".RData"))
+  }
+  if (t=="All") {
+    counts_i=counts_i[rowSums(counts_i>0)>=10,]
+    # Run correlation
+    coexpr=corAndPvalue(t(counts_i), nThreads = 20)
+    corr=coexpr$cor
+    pval=coexpr$p
+
+    # Set no significant correlations to a correlation of 0
+    # corr[which(pval>0.05,arr.ind = T)]=0
+    saveRDS(corr,file=paste0("Expression/Coexpression/Ribo/Coexpression_tables/coexpr_smORFs_Ribo_",t,".RData"))
+    saveRDS(pval,file=paste0("Expression/Coexpression/Ribo/Coexpression_tables/coexpr_smORFs_pval_Ribo_",t,".RData"))
+  }
+}
+```
+
 ### Ontology GTex, RNA, Ribo
+
+For ontology
 
 ### Ribo ontology clustering
