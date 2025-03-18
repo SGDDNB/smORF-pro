@@ -571,3 +571,71 @@ write.table(padj,paste0("GSEA_GTex/padj_matrices/padj_mat_",tissue,".txt"))
 ```
 
 ### Ribo ontology clustering
+
+To push the functionality a step further, we combine all the gsea data
+for every smORFs and every genes into 1 Seurat object to cluster the
+genes on a UMAP based on their ontology. Then by assigning cluster to
+smORFs, we can pull which genes and smORFs are in the same cluster, and
+pull which marker pathways are driving these proteins to cluster
+together.
+
+``` r
+library(data.table)
+library(ggplot2)
+library(Matrix)
+library(Seurat)
+library(dplyr)
+library(stringr)
+library(reshape2)
+library(presto)
+
+setwd("~/smORF-pro/")
+
+padj=fread("data_preparation/Expression/Coexpression/Ribo/padj_merged/padj_All.txt")
+padj=as.data.frame(padj)
+rownames(padj)=padj[,1]
+padj=padj[,-1]
+padj=t(padj)
+
+NES=fread("data_preparation/Expression/Coexpression/Ribo/NES_merged/NES_All.txt")
+NES=as.data.frame(NES)
+rownames(NES)=NES[,1]
+NES=NES[,-1]
+NES=t(NES)
+
+df=abs(-log(padj)*NES)
+
+sc_obj=CreateSeuratObject(counts = df, project = "Ribo_All", min.cells = 1, min.features = 1)
+sc_obj=FindVariableFeatures(sc_obj,selection.method = "vst",nfeatures = 1000)
+
+VariableFeaturePlot(sc_obj)
+head(VariableFeatures(sc_obj), 10)
+
+all_pathways=rownames(sc_obj)
+sc_obj=NormalizeData(sc_obj)
+sc_obj=ScaleData(sc_obj,features = all_pathways)
+sc_obj=RunPCA(sc_obj, features = VariableFeatures(object = sc_obj))
+
+DimPlot(sc_obj,reduction = "pca")
+
+ElbowPlot(sc_obj)
+elb=20
+
+sc_obj=RunUMAP(sc_obj,dims=1:elb)
+
+sc_obj=FindNeighbors(sc_obj,dims=1:elb)
+sc_obj=FindClusters(sc_obj,resolution = 1)
+DimPlot(sc_obj,reduction = "umap",label = T)
+
+sc_obj=RunTSNE(sc_obj,dims = 1:elb,check_duplicates=F)
+DimPlot(sc_obj,reduction="tsne",label=T)
+
+markers=wilcoxauc(sc_obj)
+markers=markers[markers$padj<0.05,]
+colnames(markers)[1]="Pathways"
+colnames(markers)[3]="avgNES"
+markers=markers[,c(1:4,8:10)]
+
+saveRDS(sc_obj,paste0("data_preparation/Expression/Coexpression/Ribo/GO_clusters/Clusters_All.rds"))
+saveRDS(markers,paste0("data_preparation/Expression/Coexpression/Ribo/GO_clusters/Cluster_markers_All.rds"))
+```
