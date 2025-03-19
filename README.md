@@ -42,17 +42,17 @@ added as columns to the data.frame “Annotation”.
 
 ``` r
 # Load example files
-df=read.csv("data/input_example.csv")
+df=read.csv("Example/Example_smORFs.csv")
 
 # Annotation format
-Annotation=data.frame(iORFID=df$iORF_ID,
-                      Gene_id=df$Gene_id,
-                      Gene_name=df$Gene_name,
-                      ORF_type=df$ORF_type,
-                      Gene_type=df$Gene_type,
-                      Source=NA,
-                      peptide_seq=df$Peptide_Seq,
-                      Start=df$Start_codon)```
+Annotation=data.frame(iORFID=df$ORF_id,
+                      Gene_id=df$gene_id,
+                      Gene_name=df$gene_name,
+                      ORF_type=df$iORF_type,
+                      Gene_type=df$gene_biotype,
+                      Source="sORFs.org",
+                      peptide_seq=df$Peptide.seq,
+                      Start_codon=df$starts)
                       
 # Make fasta
 library(seqinr)
