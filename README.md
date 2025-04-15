@@ -51,14 +51,15 @@ Annotation=data.frame(iORFID=df$ORF_id,
                       ORF_type=df$iORF_type,
                       Gene_type=df$gene_biotype,
                       Source="sORFs.org",
-                      peptide_seq=df$Peptide.seq,
+                      Length=df$len/3,
+                      Peptide_seq=df$Peptide.seq,
                       Start_codon=df$starts)
                       
 # Make fasta
 library(seqinr)
 library(stringr)
 
-write.fasta(as.list(Annotation$peptide_seq),names=Annotation$iORFID,
+write.fasta(as.list(Annotation$Peptide_seq),names=Annotation$iORFID,
             as.string = F,"data_preparation/Amino_Acid_Analysis/Example_smORFs.fa")
 ```
 
@@ -83,15 +84,15 @@ Annotation$deepTMHMM=File_3line$TMHMM[match(Annotation$iORFID,File_3line$iORFID)
 ### TargetP 2.0
 
 To run Target P 2.0 , go to
-<https://services.healthtech.dtu.dk/services/TargetP-2.0/> ,load your
+<https://services.healthtech.dtu.dk/services/TargetP-2.0/> , load your
 fasta file. Select “Non-plant” and “Short output (no figures)”. Submit
-your job.Once completed, in the downloads list, select “Prediction
+your job. Once completed, in the downloads list, select “Prediction
 summary” and save your file to this folder
 data_preparation/Amino_Acid_Analysis/ . Then process the results to
 integrate the results in your Annotation data.frame:
 
 ``` r
-targetP=fread("/home/baptiste/smORF-pro/data_preparation/Amino_Acid_Analysis/output_protein_type.txt")
+targetP=fread("data_preparation/Amino_Acid_Analysis/output_protein_type.txt")
 Annotation$TargetP=targetP$Prediction[match(Annotation$iORFID,targetP$`# ID`)]
 ```
 
@@ -111,7 +112,7 @@ Move the summary table to your folder
 data_preparation/Amino_Acid_Analysis/
 
 ``` r
-deeploc=read.csv("data_preparation/Amino_Acid_Analysis/deeploc_results.csv") # change name of file accordingly
+deeploc=read.csv("data_preparation/Amino_Acid_Analysis/Example_Deeploc_output.csv") # change name of file accordingly
 Annotation$Deeploc=deeploc$Localizations[match(Annotation$iORFID,deeploc$Protein_ID)]
 ```
 
@@ -147,12 +148,13 @@ for (smORF_i in smORFs_with_signals) {
   Annotation$interproscan[which(Annotation$iORFID==smORF_i)]=paste(signals_i,collapse = "; ")
 }
 
-saveRDS(Annotation,"data/Annotation_Example.rds")
+saveRDS(Annotation,"data/Annotation.rds")
 
 
 library(DT)
 df_DT=Annotation
-df_DT[,c(4,5,8,9,10,12)]=as.factor(df_DT[,c(4,5,8,9,10,12)])
+df_DT[,c(4,5,8,9,10,12)]=apply(df_DT[,c(4,5,8,9,10,12)],2,as.factor)
+df_DT=datatable(df_DT)
 
 saveRDS(df_DT,"data/Annotation_DT.rds")
 ```
@@ -166,14 +168,12 @@ required. If you don’t have a gtf format yet but you have all the CDS
 coordinates, you can process it to turn it into a gtf.
 
 ``` r
-
-Example_genetic_info=read.csv("Example_smORFs.csv")
+Example_genetic_info=read.csv("Example/Example_smORFs.csv")
 
 # Create 1 line per exon
-Example_genetic_info=data.frame(rbindlist(list(Example_genetic_info[,1:19],
-                                     Example_genetic_info[,c(1:17,20,21)],
-                                     Example_genetic_info[,c(1:17,22,23)],
-                                     Example_genetic_info[,c(1:17,24,25)])))
+Example_genetic_info=data.frame(rbindlist(list(Example_genetic_info[,1:16],
+                                     Example_genetic_info[,c(1:14,17,18)],
+                                     Example_genetic_info[,c(1:14,19,20)])))
 Example_genetic_info$iORF_id=Example_genetic_info$ORF_id
 
 # Remove lines of smORFs with no exon information and reorder the annotation
@@ -195,15 +195,15 @@ Exon_file=data.frame(chr=Example_genetic_info$Chr, # 0 line number for later per
                      pept=Example_genetic_info$Peptide.seq, # 10
                      Source="Ho et al. 2020") # 11
 
-write.table(Exon_file,"Example_exon_file.txt",row.names = F,col.names = F,
+write.table(Exon_file,"data_preparation/Genetic_information/Example_exon_file.txt",row.names = F,col.names = F,
             quote = F,sep = "\t")
 ```
 
 Once the CDS file is ready, you can convert it into a gtf by running the
 2 perl scripts in the perl_script directory:
 
-    perl exonToGTF.pl Example_smORFs_format.gtf Example_exon_file.txt
-    perl collapseGTF Example_smORFs.gtf Example_smORFs_format.gtf 
+    perl perl_scripts/exonToGTF.pl data_preparation/Genetic_information/Example_smORFs_format.gtf data_preparation/Genetic_information/Example_exon_file.txt
+    perl perl_scripts/collapseGTF.pl data_preparation/Genetic_information/Example_smORFs.gtf data_preparation/Genetic_information/Example_smORFs_format.gtf
 
 Now this GTF is usable for calculating the conservation and finding if
 the CDS parts of the smORFs are overlaping with GWAS hits.  
@@ -218,14 +218,19 @@ portion of the code is going to use the gtf coordinates of the smORFs
 CDS to align them with the 100 vertebrates maf to reveal which proteins
 are conserved in which species.  
   
-Need to detail how to obtain the maf files and how to process them.  
+You can download the raw maf files from
+<https://hgdownload.soe.ucsc.edu/goldenPath/hg38/multiz100way/maf/>  
   
 Create a folder fasta, where the nucleotides alignments will be stored,
 and create a folder protein within the fasta folder, this is where the
 protein alignment will be stored. Modify the python script
 bio_parse_orf_gtf_no_length_restriction_maf.py to specify your input
 files gtf and maf accordingly as well as your paths to the output
-directories fasta and protein. Run the python script:
+directories fasta and protein. Run the python script below.  
+NB: The first time you run this script, you maf files will be indexed
+and this can take a while a few hours to a few days depending on your
+computer. The next time you run it, or if you already have indexed files
+then it should be able to run within a few minutes.
 
     python bio_parse_orf_gtf_no_length_restriction.py
 
@@ -250,6 +255,8 @@ If you prefer to use the common species names instead of the genome
 name, you can convert the names
 
 ``` r
+species=fread("~/smORF-pro/data_preparation/Genetic_information/species_names.txt")
+
 # Make sure your setwd is in the protein folder before running this code
 for (i in list.files(pattern = ".txt")) {
   file_i=fread(i,header = F)
@@ -280,15 +287,17 @@ dist_mat folders in the protein folder. Run the run_clustalo.sh script.
 
 In this section we describe how to use the smORF gtf to find mutations
 in their CDS region from GWAS catalog. You can download GWAS catalog
-from XXXX . The goal is to find if there are any overlap, and in the
-case of an overlap, if it results to a misense or non-sense mutation.
+from <https://www.ebi.ac.uk/gwas/docs/file-downloads> and download the
+All Associations v1.0, the file should be 300+Mb. The goal is to find if
+there are any overlap, and in the case of an overlap, if it results to a
+misense or non-sense mutation.
 
 ``` r
 library(rtracklayer)
 library(GenomicRanges)
 
 
-GWAS=fread("data_preparation/Genetic_Information/GWAS/gwas_catalog_v1.0-associations_e111_r2024-01-19.tsv")
+GWAS=fread("data_preparation/Genetic_Information/gwas_catalog_v1.0-associations_e111_r2024-01-19.tsv")
 GWAS$CHR_POS=as.numeric(GWAS$CHR_POS)
 GWAS=GWAS[!is.na(GWAS$CHR_POS),]
 
@@ -348,6 +357,8 @@ for (i in 1:nrow(GWAS_results)) {
   }
   GWAS_results$seq_change[i]=change
 }
+
+write.csv(GWAS_results,"GWAS_smORF_overlap.csv",row.names = F)
 ```
 
 ## III - Expression specificity

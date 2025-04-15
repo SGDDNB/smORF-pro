@@ -1,0 +1,624 @@
+##### smORF Selection #####
+
+SelectSmorfUI=function(id){
+  ns=NS(id)
+  selectInput(ns("smORF_ID"),label = "Select a smORF ID",choices = Annotation$iORF_ID)
+}
+
+SelectSmorfServer=function(id){
+  moduleServer(id,function(input,output,session){
+    selected_smORF_ID=reactive({input$smORF_ID})
+    return(selected_smORF_ID)
+  })
+}
+
+# short smORF description
+
+smORF_descrUI=function(id){
+  ns=NS(id)
+  textOutput(ns("smORF_descr"))
+}
+
+smORF_descrServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$smORF_descr=renderText({
+      load_smORF(selected_smORF())
+      paste0(smORF_object$Annotation$iORF_ID," is a ", smORF_object$Annotation$ORF_type, " protein located on gene ",
+                   smORF_object$Annotation$Gene_id, " - ", smORF_object$Annotation$Gene_name,
+             " and was found in ", Annotation$Source[which(Annotation$iORF_ID==smORF_object$Annotation$iORF_ID)])
+    })
+  })
+}
+
+
+##### Home Page Modules #####
+
+HomeUI=function(id){
+  ns=NS(id)
+  page_fluid(sidebarLayout(sidebarPanel(
+    h2("Documentation"),
+    p("smORF-pro is a shiny app developped on Rstudio. The code can be found on github at:",
+      style = "text-align: justify;"),
+    #a("www.github/SGDDNB/smORF-pro/", href = "www.github/SGDDNB/smORF-pro/"),
+    br(),
+    br(),
+    p("(Link to paper)"),
+    br(),
+    br(),
+    div(img(src = "github.png",height = 100,width = 100), style = "text-align: center;"),),
+    mainPanel(h1("Introducing smORF-pro"),
+              p(paste0("small Open Reading Frames (smORFs), are proteins that are shorter than 100 amino acids. ",
+                       "Due to their small size, they have remained understudied until the development of technologies",
+                       " like ribosome-profiling data. We believe that several thousands of them are expressed in human",
+                       " and are yet to be characterised."),style = "text-align: justify;"),
+              br(),
+              p(paste0("In order to facilitate their function characterisation, we develop smORF-pro. ",
+                       "smORF-pro is in an in silico platform that gather deep analysis of ",
+                       "transcription profiles, coexpression patterns, conservations and protein motifs",
+                       "; with the purpose of helping our community to generate hypothesis on smORF functions."),
+                style = "text-align: justify;"),
+              br(),
+              br()
+    )
+  ),
+  br(),
+  br(),
+  fluidRow(
+    column(3,offset = 3,
+           titlePanel(h3("Individual smORF analysis")),
+           p(paste0("Select a smORF ID to visualize all the analysis done for that smORF and to help you generate",
+                    " hypothesis on its biological function."),
+             style = "text-align: justify;"),
+           align="center"
+    ),
+    column(3,
+           titlePanel(h3("Explore smORFs database")),
+           p(paste0("Shortlist which smORFs are of interest for you by filtering through the different features:",
+                    " Subcellular localization, Conservation, PepScore, Ontology, ..."),
+             style = "text-align: justify;"),
+           align="center"
+    ))
+  )
+}
+
+
+
+
+HomeServer = function(id) {
+  moduleServer(id, function(input, output, session) {
+  })
+}
+
+
+##### smORF Page Modules #####
+
+##### smORF Summary tab #####
+
+SmorfSummaryUI=function(id){
+  ns=NS(id)
+  textOutput(ns("smORF_summary"))
+}
+
+SmorfSummaryServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$smORF_summary=renderText({
+      req(selected_smORF())
+      load_smORF(selected_smORF())
+      smORF_object$Annotation$iORF_ID
+    })
+  })
+}
+
+##### AA Analysis #####
+
+DomainUI=function(id){
+  ns=NS(id)
+  tableOutput(ns("DomainTable"))
+}
+
+DomainServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$DomainTable=renderTable({
+      load_smORF(selected_smORF())
+      smORF_object$Annotation
+    })
+  })
+}
+
+SubcellularUI=function(id){
+  ns=NS(id)
+  fluidRow(
+    column(width=3,h3("Score per organelle"),
+           htmlOutput(ns("DeeplocText"))),
+    column(width=7,h3("Cell Anatogram"),
+           uiOutput(ns("CellAnatogram"))),
+    column(width=1,
+           plotOutput(ns("CellAnatogramScale"))),
+  )
+}
+
+SubcellularServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$DeeplocText=renderUI({
+      load_smORF(selected_smORF())
+      if (nchar(smORF_object$Annotation$Peptide_Seq)>9) {
+        HTML(Deeploc_text(smORF_object))
+      }
+    })
+    output$CellAnatogram=renderUI({
+      load_smORF(selected_smORF())
+      if (nchar(smORF_object$Annotation$Peptide_Seq)>9) {
+        tags$iframe(style="height:500px; width:700px",src=paste0("Deeploc/",smORF_object$Annotation$iORF_ID,".png"))
+      } else {
+        br()
+        h2("This smORF is too short to be analyzed by Deeploc")
+      }
+    })
+    output$CellAnatogramScale=renderPlot({
+      load_smORF(selected_smORF())
+      if (nchar(smORF_object$Annotation$Peptide_Seq)>9) {
+        plot_cell_sublocation_scale()
+      }
+    },height = 200,width = 80)
+  })
+}
+
+#### Genetic Information #####
+
+ConservationUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    titlePanel("Reference species"),
+    plotOutput(ns("RefPlot")),
+    titlePanel("Alignment plot"),
+    uiOutput(ns("ConservationAlignment"))
+  )
+}
+
+
+ConservationServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    ns=session$ns
+    output$RefPlot=renderPlot({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$Conservation)>1) {
+        plot_ref(smORF=smORF_object)
+      } else {
+        par(mar = c(0,0,0,0))
+        plot(c(0, 1), c(0, 1), ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+        text(x = 0.5, y = 0.5, paste("MSA failed to align this\n","smORF in other species."),
+             cex = 2.2, col = "red")
+      }
+    },height = 300,width = 350)
+
+    output$ConservationAlignment=renderUI({
+      load_smORF(selected_smORF())
+      if(paste0(smORF_object$Annotation$iORF_ID,".png")%in%list.files("www/Conservation/")){
+        heighti=20+30*smORF_object$Conservation$nb_species
+        widthi = 50+30*smORF_object$Conservation$max_L
+        tags$iframe(style=paste0("height:",heighti,"px; width:",widthi,"px"),
+                    src=paste0("Conservation/",smORF_object$Annotation$iORF_ID,".png"))
+      }
+    })
+  })
+}
+
+GeneticVariantUI=function(id){
+  ns=NS(id)
+  page_fluid(dataTableOutput(ns("variants")),
+             textOutput(ns("NoMutation")))
+}
+
+GeneticVariantServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$variants=renderDataTable({
+      load_smORF(selected_smORF())
+      if (smORF_object$Annotation$iORF_ID%in%GWAS_results$iORF_id) {
+        FindMutation(smORF_object)
+      }
+    })
+      if (!smORF_object$Annotation$iORF_ID%in%GWAS_results$iORF_id) {
+        output$NoMutation=renderText({
+           paste0("There is no GWAS hit overlapping with the CDS of this smORF from GWAS catalog.")
+        })
+      }
+  })
+}
+
+
+##### Expression tab #####
+
+TissueSpecificityUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    fluidRow(
+      column(4,
+             titlePanel("RNAseq TPM"),
+             plotOutput(ns("RNAseqPlot"))),
+      column(4,
+             titlePanel("RIBOseq TPM"),
+             plotOutput(ns("RIBOseqPlot")))),
+    titlePanel("GTex database RNA Expression"),
+    uiOutput(ns("RNAseqGTexPlot"),height = 700),
+    fluidRow(
+      column(4,
+             titlePanel("Male RNA TPM Anatogram"),
+             plotOutput(ns("MaleAnatogram"),height = "100%")),
+      column(4,
+             titlePanel("Female RNA TPM Anatogram"),
+             plotOutput(ns("FemaleAnatogram"),height = "100%")),
+      )
+  )
+}
+
+TissueSpecificityServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$RNAseqPlot=renderPlot({
+      load_smORF(selected_smORF())
+      ggplot(smORF_object$TissueTPM,aes(x=Tissue,y=RNA))+geom_boxplot(fill="deepskyblue1")+
+          theme_bw()+xlab("")+ylab("TPM")+ggtitle("RNA expression")+
+          theme(plot.title =element_text(hjust = 0.5,size=15),
+                axis.text.x = element_text(angle = 45,hjust=1))},
+      height = 400)
+    output$RIBOseqPlot=renderPlot({
+      load_smORF(selected_smORF())
+      ggplot(smORF_object$TissueTPM,aes(x=Tissue,y=RIBO))+geom_boxplot(fill="darkorange2")+
+          theme_bw()+xlab("")+ylab("TPM")+ggtitle("RIBO expression")+
+          theme(plot.title =element_text(hjust = 0.5,size=15),
+                axis.text.x = element_text(angle = 45,hjust=1))},
+      height = 400)
+    output$RNAseqGTexPlot=renderUI({
+      load_smORF(selected_smORF())
+      if (paste0(smORF_object$Annotation$Gene_id,".png")%in%list.files("www/GTex_Expression")) {
+        tags$iframe(style="height:700px; width:1800px",src=paste0("GTex_Expression/",smORF_object$Annotation$Gene_id,".png"))
+      } else {
+        h2("This smORF is on a gene that is not annotated in GTex database")
+      }
+    })
+    output$MaleAnatogram=renderPlot({
+      load_smORF(selected_smORF())
+      if (!is.na(smORF_object$GTex_mean[1,2])) {
+        Male_anatogram(smORF_object$GTex_mean)
+      }
+    },height = 600,width = 400)
+    output$FemaleAnatogram=renderPlot({
+      load_smORF(selected_smORF())
+      if (!is.na(smORF_object$GTex_mean[1,2])) {
+        Female_anatogram(smORF_object$GTex_mean)
+      }
+    },height = 600,width = 400)
+  })
+}
+
+CellUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    selectInput(ns("scTissue"),"Select a Tissue",choices = c("Heart")),
+    fluidRow(
+      column(7,
+             h3("UMAP clustering"),
+             uiOutput(ns("dimplot"))
+             ),
+      column(5,
+             uiOutput(ns("Feature"))
+      )
+    ),
+    uiOutput(ns("Violin"))
+  )
+}
+
+CellServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$dimplot=renderUI({
+      tags$iframe(style="height:500px; width:1100px",src="heart_sc.png")
+    })
+    output$Feature=renderUI({
+      load_smORF(selected_smORF())
+      tags$iframe(style="height:500px; width:600px",src=paste0("Heart/",smORF_object$Annotation$Gene_name,"_F.png"))
+    })
+    output$Violin=renderUI({
+      load_smORF(selected_smORF())
+      tags$iframe(style="height:500px; width:100%",src=paste0("Heart/",smORF_object$Annotation$Gene_name,"_V.png"))
+    })
+
+  })
+}
+
+##### Correlation & Ontology #####
+
+CorrelationUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    titlePanel("smORF Ribo Coexpression"),
+    dataTableOutput(ns("CoexpressionTable"))
+  )
+}
+
+CorrelationServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$CoexpressionTable=renderDataTable({
+      load_smORF(selected_smORF())
+      if (nrow(smORF_object$Coexpr)>0) {
+        smORF_object$Coexpr$Gene_Name=gene_names$IDENTIFIER[match(smORF_object$Coexpr$ID,gene_names$geneID)]
+        smORF_object$Coexpr=smORF_object$Coexpr[,c(1,4,2,3)]
+        datatable(rownames = F,
+                  smORF_object$Coexpr,
+                  filter = list(position = 'top', clear = FALSE),
+                  extensions = "Buttons",
+                  options = list(paging = TRUE,
+                                 scrollX=TRUE,
+                                 searching = TRUE,
+                                 ordering = TRUE,
+                                 dom = 'lBtip',
+                                 buttons = c('copy', 'csv', 'excel', 'pdf'),
+                                 pageLength=10,
+                                 lengthMenu=c(10,20,50,100) )
+        )
+      }
+    })
+  })
+}
+
+gseaUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    fluidRow(
+             column(3,selectInput(ns("nb_pathway"),"Number of top pathways per tissue",choices = 1:10,
+                                  selected = 5))),
+    titlePanel("GTex RNAseq GSEA"),
+    plotOutput(ns("GTex_gsea"),height = 800),
+    fluidRow(
+      column(6,
+             titlePanel("RNAseq GSEA"),
+             plotOutput(ns("RNAgsea"))
+             ),
+      column(6,
+             titlePanel("RIBOseq GSEA"),
+             plotOutput(ns("RIBOgsea"))
+             )
+      ),
+    uiOutput(ns("UTRtitle")),
+    uiOutput(ns("UTR"))
+  )
+}
+
+gseaServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$GTex_gsea=renderPlot({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$GSEA$GTex)>0) {
+        Bubble_simple(smORF_object$GSEA$GTex,input$nb_pathway)
+      }
+    },height = 800)
+
+    output$RNAgsea=renderPlot({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$GSEA$RNA)>0) {
+        Bubble_simple(smORF_object$GSEA$RNA,input$nb_pathway)
+      }
+    })
+    output$RIBOgsea=renderPlot({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$GSEA$Ribo)>0) {
+        Bubble_simple(smORF_object$GSEA$Ribo,input$nb_pathway)
+      }
+    })
+
+    output$UTRtitle=renderUI({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$GSEA$UTR)>0) {
+        titlePanel("Comparison smORF vs mORF")
+      }
+    })
+
+    output$UTR=renderUI({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$GSEA$UTR)>0) {
+        ns=NS(id)
+        plotOutput(ns("UTRgsea"))
+        output$UTRgsea=renderPlot({
+          Bubble_simple(smORF_object$GSEA$UTR,input$nb_pathway)
+        },width = 800)
+      }
+    })
+  })
+}
+
+
+GOClusterUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    titlePanel("Ribo-seq GSEA All Tissue clustering"),
+    #selectInput(ns("ID_go"),"Select a gene or smORF",choices = colnames(GO_cluster)),
+    textOutput(ns("cluster_ID_go")),
+    selectInput(ns("cluster_nb"),"Select a cluster", choices = 0:20),
+    uiOutput(ns("umap")),
+    fluidRow(
+      column(4,
+             titlePanel("Proteins in selected cluster"),
+             dataTableOutput(ns("cluster_gene_list"))),
+      column(8,
+             titlePanel("Pathways enriched in this cluster"),
+             dataTableOutput(ns("cluster_markers")))
+    )
+  )
+}
+
+GOClusterServer=function(id,selected_smORF){
+  moduleServer(id,function(input,output,session){
+    output$cluster_ID_go=renderText({
+      load_smORF(selected_smORF())
+      cluster_ID_i=as.numeric(GO_cluster$Cluster[which(GO_cluster$geneID==smORF_object$Annotation$Gene_id)])
+      if (smORF_object$Annotation$Gene_id%in%GO_cluster$geneID) {
+        paste0(smORF_object$Annotation$iORF_ID," is part of cluster ",cluster_ID_i)
+      }
+      else {
+        paste0(smORF_object$Annotation$iORF_ID,"'s gene was not detected in this scRNAseq.")
+      }
+    })
+    output$umap=renderUI({
+      tags$iframe(style="height:500px; width:700px",src="GO_cluster.png")
+      })
+    output$cluster_gene_list=renderDataTable({
+      datatable(rownames = F,
+                gene_names[which(gene_names$geneID%in%GO_cluster$geneID[which(GO_cluster$Cluster==input$cluster_nb)]),],
+                filter = list(position = 'top', clear = FALSE),
+                extensions = "Buttons",
+                options = list(paging = TRUE,
+                               scrollX=TRUE,
+                               searching = TRUE,
+                               ordering = TRUE,
+                               dom = 'lBtip',
+                               buttons = c('copy', 'csv', 'excel', 'pdf'),
+                               pageLength=10,
+                               lengthMenu=c(10,20,50,100)
+                               )
+                )
+      })
+    output$cluster_markers=renderDataTable({
+      markers_i=markers[which(markers$group==input$cluster_nb),]
+      markers_i=markers_i[order(markers_i$padj),]
+      datatable(rownames = F,
+                markers_i,
+                filter = list(position = 'top', clear = FALSE),
+                extensions = "Buttons",
+                options = list(paging = TRUE,
+                               scrollX=TRUE,
+                               searching = TRUE,
+                               ordering = TRUE,
+                               dom = 'lBtip',
+                               buttons = c('copy', 'csv', 'excel', 'pdf'),
+                               pageLength=10,
+                               lengthMenu=c(10,20,50,100)
+                )
+      )
+    })
+  })
+}
+
+##### Explore Page modules #####
+
+ExploreTableUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    h3("Explore smORFs from Annotation"),
+    dataTableOutput(ns("ExploreTable")),
+    br(),
+    downloadButton(ns("Download"),"Download Original Table")
+  )
+}
+
+
+ExploreTableServer=function(id){
+  moduleServer(id,function(input,output,session){
+    reactive_df=reactive(datatable(rownames = F,
+                                   df_DT,
+                                   filter = list(position = 'top', clear = FALSE),
+                                   extensions = "Buttons",
+                                   options = list(paging = TRUE,
+                                                  scrollX=TRUE,
+                                                  searching = TRUE,
+                                                  ordering = TRUE,
+                                                  dom = 'lBtip',
+                                                  buttons = c('copy', 'csv', 'excel', 'pdf'),
+                                                  pageLength=10,
+                                                  lengthMenu=c(10,20,50,100) )
+    ))
+    output$ExploreTable=renderDataTable({
+      reactive_df()
+    })
+    output$Download=downloadHandler(
+      filename = function(){"smORFs.csv"},
+      content = function(fname){
+        write.csv(Annotation, fname)
+      }
+    )
+  })
+}
+
+ExplorePathwaysUI=function(id){
+  ns=NS(id)
+  fluidPage(
+    h3("Explore smORFs from ontology enrichment"),
+    selectInput(ns("Pathway"),"Select a pathway",selected = "KEGG_ABC_TRANSPORTERS",
+                choices = colnames(RiboAllMerged),width = "100%"),
+    dataTableOutput(ns("ExplorePathways"))
+  )
+}
+
+
+ExplorePathwaysServer=function(id){
+  moduleServer(id,function(input,output,session){
+    reactive_df=reactive(datatable(rownames = F,
+                                   data.frame(ID = rownames(RiboAllMerged),
+                                              Gene_Name=gene_names$IDENTIFIER[match(rownames(RiboAllMerged),gene_names$geneID)],
+                                              NES=RiboAllMergedNES[,input$Pathway],
+                                              padj=RiboAllMerged[,input$Pathway]),
+                                   filter = list(position = 'top', clear = FALSE),
+                                   extensions = "Buttons",
+                                   options = list(paging = TRUE,
+                                                  scrollX=TRUE,
+                                                  ordering = TRUE,
+                                                  dom = 'lBtip',
+                                                  buttons = c('copy', 'csv', 'excel', 'pdf'),
+                                                  pageLength=10,
+                                                  lengthMenu=c(10,20,50,100) )
+    ))
+    output$ExplorePathways=renderDataTable({
+      reactive_df()
+    })
+  })
+}
+
+
+ExploreMutationsUI=function(id){
+  ns=NS(id)
+  page_fluid(
+    h3("Explore smORFs overlapping with GWAS hits"),
+    dataTableOutput(ns("ExploreMutations"))
+  )
+}
+
+ExploreMutationsServer=function(id){
+  moduleServer(id,function(input,output,session){
+    reactive_df=reactive(datatable(rownames = F,
+                                   GWAS_results,
+                                   filter = list(position = 'top', clear = FALSE),
+                                   extensions = "Buttons",
+                                   options = list(paging = TRUE,
+                                                  scrollX=TRUE,
+                                                  ordering = TRUE,
+                                                  dom = 'lBtip',
+                                                  buttons = c('copy', 'csv', 'excel', 'pdf'),
+                                                  pageLength=10,
+                                                  lengthMenu=c(10,20,50,100) )
+    ))
+    output$ExploreMutations=renderDataTable({
+      reactive_df()
+    })
+  })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

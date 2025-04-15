@@ -1,0 +1,56 @@
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	Phobius	TRANSMEMBRANE	Region of a membrane-bound protein predicted to be embedded in the membrane.	20	42	-	T	19-03-2025	-	-	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	Phobius	CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the cytoplasm.	43	74	-	T	19-03-2025	-	-	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	MobiDBLite	mobidb-lite	consensus disorder prediction	55	74	-	T	19-03-2025	-	-	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	PANTHER	PTHR28644	SMALL INTEGRAL MEMBRANE PROTEIN 15	1	74	1.4E-41	T	19-03-2025	IPR027877	Small integral membrane protein 15	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	Coils	Coil	Coil	44	71	-	T	19-03-2025	-	-	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	MobiDBLite	mobidb-lite	consensus disorder prediction	55	66	-	T	19-03-2025	-	-	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	TMHMM	TMhelix	Region of a membrane-bound protein predicted to be embedded in the membrane.	20	42	-	T	19-03-2025	-	-	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	Pfam	PF15086	Uncharacterised protein family UPF0542	4	70	1.3E-31	T	19-03-2025	IPR027877	Small integral membrane protein 15	-	-
+ORF187	d6de4cb6761b771320ea05e8a3f93c35	74	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	1	19	-	T	19-03-2025	-	-	-	-
+ORF104	a20985990a2e621ee930975998bfa66f	63	SignalP_EUK	SignalP-noTM	SignalP-noTM	1	27	-	T	19-03-2025	-	-	-	-
+ORF141	11861ddc4ae2976f4603922143527031	95	MobiDBLite	mobidb-lite	consensus disorder prediction	59	95	-	T	19-03-2025	-	-	-	-
+ORF141	11861ddc4ae2976f4603922143527031	95	MobiDBLite	mobidb-lite	consensus disorder prediction	59	80	-	T	19-03-2025	-	-	-	-
+ORF141	11861ddc4ae2976f4603922143527031	95	MobiDBLite	mobidb-lite	consensus disorder prediction	81	95	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	35	57	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the cytoplasm.	76	78	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	SignalP_GRAM_POSITIVE	SignalP-TM	SignalP-TM	1	28	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	PANTHER	PTHR34446	SMALL INTEGRAL MEMBRANE PROTEIN 10	8	77	2.8E-42	T	19-03-2025	IPR029367	Small integral membrane protein 10	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	SIGNAL_PEPTIDE_N_REGION	N-terminal region of a signal peptide.	1	4	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Pfam	PF15118	Domain of unknown function (DUF4560)	13	77	2.0E-35	T	19-03-2025	IPR029367	Small integral membrane protein 10	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	SIGNAL_PEPTIDE_C_REGION	C-terminal region of a signal peptide.	17	34	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	SIGNAL_PEPTIDE_H_REGION	Hydrophobic region of a signal peptide.	5	16	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	SignalP_GRAM_NEGATIVE	SignalP-noTM	SignalP-noTM	1	20	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	SIGNAL_PEPTIDE	Signal peptide region	1	34	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_42	17ebdb82bc30ade0616fa260c57a26ab	78	Phobius	TRANSMEMBRANE	Region of a membrane-bound protein predicted to be embedded in the membrane.	58	75	-	T	19-03-2025	-	-	-	-
+ORF55	babaf20740ddfb0ffdc7837fc2dca4f3	39	Phobius	TRANSMEMBRANE	Region of a membrane-bound protein predicted to be embedded in the membrane.	12	29	-	T	19-03-2025	-	-	-	-
+ORF55	babaf20740ddfb0ffdc7837fc2dca4f3	39	Phobius	CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the cytoplasm.	30	39	-	T	19-03-2025	-	-	-	-
+ORF55	babaf20740ddfb0ffdc7837fc2dca4f3	39	TMHMM	TMhelix	Region of a membrane-bound protein predicted to be embedded in the membrane.	10	29	-	T	19-03-2025	-	-	-	-
+ORF55	babaf20740ddfb0ffdc7837fc2dca4f3	39	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	1	11	-	T	19-03-2025	-	-	-	-
+ORF90	9cc19c6cef3f4a324b4fa5b48fff5f2b	61	Phobius	SIGNAL_PEPTIDE_H_REGION	Hydrophobic region of a signal peptide.	6	16	-	T	19-03-2025	-	-	-	-
+ORF90	9cc19c6cef3f4a324b4fa5b48fff5f2b	61	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	22	61	-	T	19-03-2025	-	-	-	-
+ORF90	9cc19c6cef3f4a324b4fa5b48fff5f2b	61	Phobius	SIGNAL_PEPTIDE_N_REGION	N-terminal region of a signal peptide.	1	5	-	T	19-03-2025	-	-	-	-
+ORF90	9cc19c6cef3f4a324b4fa5b48fff5f2b	61	Phobius	SIGNAL_PEPTIDE	Signal peptide region	1	21	-	T	19-03-2025	-	-	-	-
+ORF90	9cc19c6cef3f4a324b4fa5b48fff5f2b	61	Phobius	SIGNAL_PEPTIDE_C_REGION	C-terminal region of a signal peptide.	17	21	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_49	b69128a3b74120471c78e4400dc47566	50	Phobius	CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the cytoplasm.	30	50	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_49	b69128a3b74120471c78e4400dc47566	50	Phobius	TRANSMEMBRANE	Region of a membrane-bound protein predicted to be embedded in the membrane.	12	29	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_49	b69128a3b74120471c78e4400dc47566	50	TMHMM	TMhelix	Region of a membrane-bound protein predicted to be embedded in the membrane.	12	29	-	T	19-03-2025	-	-	-	-
+Lena_screen_1_49	b69128a3b74120471c78e4400dc47566	50	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	1	11	-	T	19-03-2025	-	-	-	-
+ORF148	d9e26f05dc5b61c268e21a8a95e389f8	51	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	16	51	-	T	19-03-2025	-	-	-	-
+ORF148	d9e26f05dc5b61c268e21a8a95e389f8	51	Phobius	SIGNAL_PEPTIDE_H_REGION	Hydrophobic region of a signal peptide.	3	10	-	T	19-03-2025	-	-	-	-
+ORF148	d9e26f05dc5b61c268e21a8a95e389f8	51	Phobius	SIGNAL_PEPTIDE_N_REGION	N-terminal region of a signal peptide.	1	2	-	T	19-03-2025	-	-	-	-
+ORF148	d9e26f05dc5b61c268e21a8a95e389f8	51	SignalP_GRAM_POSITIVE	SignalP-TM	SignalP-TM	1	20	-	T	19-03-2025	-	-	-	-
+ORF148	d9e26f05dc5b61c268e21a8a95e389f8	51	Phobius	SIGNAL_PEPTIDE	Signal peptide region	1	15	-	T	19-03-2025	-	-	-	-
+ORF148	d9e26f05dc5b61c268e21a8a95e389f8	51	Phobius	SIGNAL_PEPTIDE_C_REGION	C-terminal region of a signal peptide.	11	15	-	T	19-03-2025	-	-	-	-
+ORF189	035e4e616bc77531abbcc6e18bdd1ca0	57	Phobius	CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the cytoplasm.	36	57	-	T	19-03-2025	-	-	-	-
+ORF189	035e4e616bc77531abbcc6e18bdd1ca0	57	PANTHER	PTHR36684	CYTOCHROME C OXIDASE ASSEMBLY PROTEIN COX14	1	57	1.9E-35	T	19-03-2025	IPR029208	Cytochrome c oxidase assembly protein COX14	GO:0005739(PANTHER)|GO:0033617(PANTHER)	Reactome:R-BTA-9864848|Reactome:R-HSA-9864848|Reactome:R-MMU-9864848|Reactome:R-RNO-9864848
+ORF189	035e4e616bc77531abbcc6e18bdd1ca0	57	TMHMM	TMhelix	Region of a membrane-bound protein predicted to be embedded in the membrane.	15	37	-	T	19-03-2025	-	-	-	-
+ORF189	035e4e616bc77531abbcc6e18bdd1ca0	57	Pfam	PF14880	Cytochrome oxidase c assembly	2	53	4.3E-15	T	19-03-2025	IPR029208	Cytochrome c oxidase assembly protein COX14	-	Reactome:R-BTA-9864848|Reactome:R-HSA-9864848|Reactome:R-MMU-9864848|Reactome:R-RNO-9864848
+ORF189	035e4e616bc77531abbcc6e18bdd1ca0	57	Phobius	TRANSMEMBRANE	Region of a membrane-bound protein predicted to be embedded in the membrane.	15	35	-	T	19-03-2025	-	-	-	-
+ORF189	035e4e616bc77531abbcc6e18bdd1ca0	57	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	1	14	-	T	19-03-2025	-	-	-	-
+ORF146	a1a913e0f6e0384bbba6d3a14dde4324	73	TMHMM	TMhelix	Region of a membrane-bound protein predicted to be embedded in the membrane.	15	37	-	T	19-03-2025	-	-	-	-
+ORF88	735285f283b8a175782c4167d5267863	37	Phobius	NON_CYTOPLASMIC_DOMAIN	Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.	18	37	-	T	19-03-2025	-	-	-	-
+ORF88	735285f283b8a175782c4167d5267863	37	Phobius	SIGNAL_PEPTIDE_N_REGION	N-terminal region of a signal peptide.	1	2	-	T	19-03-2025	-	-	-	-
+ORF88	735285f283b8a175782c4167d5267863	37	Phobius	SIGNAL_PEPTIDE	Signal peptide region	1	17	-	T	19-03-2025	-	-	-	-
+ORF88	735285f283b8a175782c4167d5267863	37	Phobius	SIGNAL_PEPTIDE_C_REGION	C-terminal region of a signal peptide.	14	17	-	T	19-03-2025	-	-	-	-
+ORF88	735285f283b8a175782c4167d5267863	37	Phobius	SIGNAL_PEPTIDE_H_REGION	Hydrophobic region of a signal peptide.	3	13	-	T	19-03-2025	-	-	-	-
+ORF180	b086a8f6983db3d064b1ad9effb74c51	28	SignalP_GRAM_POSITIVE	SignalP-TM	SignalP-TM	1	10	-	T	19-03-2025	-	-	-	-
