@@ -32,17 +32,23 @@ HomeUI=function(id){
   br(),
   br(),
   fluidRow(
-    column(3,offset = 3,
+    column(4,
            titlePanel(h3("Individual smORF analysis")),
            p(paste0("Select a smORF ID to visualize all the analysis done for that smORF and to help you generate",
                     " hypothesis on its biological function."),
              style = "text-align: justify;"),
            align="center"
     ),
-    column(3,
+    column(4,
            titlePanel(h3("Explore smORFs database")),
            p(paste0("Shortlist which smORFs are of interest for you by filtering through the different features:",
                     " Subcellular localization, Conservation, PepScore, Ontology, ..."),
+             style = "text-align: justify;"),
+           align="center"
+    ),
+    column(4,
+           titlePanel(h3("Find your smORF")),
+           p(paste0("Find your smORF based of gene ID, gene IDENTIFIER or protein sequence."),
              style = "text-align: justify;"),
            align="center"
     ))
@@ -61,7 +67,7 @@ HomeServer = function(id) {
 
 smorfUI <- function(id) {
   ns <- NS(id)
-  tagList(selectInput(ns("smORF_ID"),label = "Select a smORF ID",choices = Annotation$iORF_ID),
+  tagList(selectInput(ns("smORF_ID"),label = "Select a smORF ID",choices = Annotation$iORF_ID,selected = smORF_object$Annotation$iORF_ID),
           smORF_descrUI(ns("smORF_descr")),
   navset_card_tab(id=ns("tabs"),
                   nav_panel("Summary", SummarySmORFText(),
@@ -91,12 +97,12 @@ smorfUI <- function(id) {
   ))
 }
 
-smorfServer=function(id){
+smorfServer=function(id,parent_session){
   moduleServer(id, function(input,output,session){
     selected_smORF_ID=reactive({input$smORF_ID})
     smORF_descrServer("smORF_descr",selected_smORF_ID)
     SmorfSummaryServer("Summary",selected_smORF_ID)
-    DomainServer("Domain",selected_smORF_ID)
+    DomainServer("Domain",selected_smORF_ID,parent_session)
     SubcellularServer("Deeploc",selected_smORF_ID)
     ConservationServer("Conservation",selected_smORF_ID)
     GeneticVariantServer("GWAS",selected_smORF_ID)
@@ -124,11 +130,25 @@ ExploreUI=function(id){
 }
 
 
-ExploreServer=function(id){
-  ExploreTableServer("ExploreTable")
-  ExplorePathwaysServer("ExplorePathway")
-  ExploreMutationsServer("ExploreMutations")
+ExploreServer=function(id,parent_session){
+    ExploreTableServer("ExploreTable",parent_session)
+    ExplorePathwaysServer("ExplorePathway",parent_session)
+    ExploreMutationsServer("ExploreMutations",parent_session)
 }
 
+
+#### Find Page ####
+
+
+FindUI=function(id){
+  page_fluid(
+    FindTableUI("FindTable")
+  )
+}
+
+
+FindServer=function(id,parent_session){
+  FindTableServer("FindTable",parent_session)
+}
 
 

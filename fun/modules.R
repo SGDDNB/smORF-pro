@@ -2,7 +2,7 @@
 
 SelectSmorfUI=function(id){
   ns=NS(id)
-  selectInput(ns("smORF_ID"),label = "Select a smORF ID",choices = Annotation$iORF_ID)
+  selectInput(ns("smORF_ID"),label = "Select a smORF ID",choices = Annotation$iORF_ID,selected = smORF_object$Annotation$iORF_ID)
 }
 
 SelectSmorfServer=function(id){
@@ -31,81 +31,112 @@ smORF_descrServer=function(id,selected_smORF){
 }
 
 
-##### Home Page Modules #####
-
-HomeUI=function(id){
-  ns=NS(id)
-  page_fluid(sidebarLayout(sidebarPanel(
-    h2("Documentation"),
-    p("smORF-pro is a shiny app developped on Rstudio. The code can be found on github at:",
-      style = "text-align: justify;"),
-    #a("www.github/SGDDNB/smORF-pro/", href = "www.github/SGDDNB/smORF-pro/"),
-    br(),
-    br(),
-    p("(Link to paper)"),
-    br(),
-    br(),
-    div(img(src = "github.png",height = 100,width = 100), style = "text-align: center;"),),
-    mainPanel(h1("Introducing smORF-pro"),
-              p(paste0("small Open Reading Frames (smORFs), are proteins that are shorter than 100 amino acids. ",
-                       "Due to their small size, they have remained understudied until the development of technologies",
-                       " like ribosome-profiling data. We believe that several thousands of them are expressed in human",
-                       " and are yet to be characterised."),style = "text-align: justify;"),
-              br(),
-              p(paste0("In order to facilitate their function characterisation, we develop smORF-pro. ",
-                       "smORF-pro is in an in silico platform that gather deep analysis of ",
-                       "transcription profiles, coexpression patterns, conservations and protein motifs",
-                       "; with the purpose of helping our community to generate hypothesis on smORF functions."),
-                style = "text-align: justify;"),
-              br(),
-              br()
-    )
-  ),
-  br(),
-  br(),
-  fluidRow(
-    column(3,offset = 3,
-           titlePanel(h3("Individual smORF analysis")),
-           p(paste0("Select a smORF ID to visualize all the analysis done for that smORF and to help you generate",
-                    " hypothesis on its biological function."),
-             style = "text-align: justify;"),
-           align="center"
-    ),
-    column(3,
-           titlePanel(h3("Explore smORFs database")),
-           p(paste0("Shortlist which smORFs are of interest for you by filtering through the different features:",
-                    " Subcellular localization, Conservation, PepScore, Ontology, ..."),
-             style = "text-align: justify;"),
-           align="center"
-    ))
-  )
-}
-
-
-
-
-HomeServer = function(id) {
-  moduleServer(id, function(input, output, session) {
-  })
-}
-
-
 ##### smORF Page Modules #####
 
 ##### smORF Summary tab #####
 
 SmorfSummaryUI=function(id){
   ns=NS(id)
-  textOutput(ns("smORF_summary"))
+  fluidPage(fluidRow(h3("Protein predicted structure"),
+    column(
+      4, NGLVieweROutput(ns("ngl"), height = "500px")
+    ),
+    column(
+      4,
+      selectInput(ns("style"), "Representation",
+                  c("cartoon", "ribbon", "trace", "line (licorice)" = "licorice", "spacefill"),
+                  selected = "cartoon"),
+      selectInput(ns("color"), "Color by",
+                  c("B-factor (pLDDT)" = "bfactor",
+                    "Residue index" = "residueindex",
+                    "Uniform" = "uniform",
+                    "Hydrophobicity"="hydrophobicity"),
+                  selected = "bfactor"),
+      checkboxInput(ns("spin"),"Spin",F)
+    )
+  ),fluidRow(
+    column(width=4,h3("Summary"),
+           htmlOutput(ns("smORF_summary"))),
+    column(width=4,h3("Conservation"),
+           plotOutput(ns("RefPlot")))
+  ),fluidRow(
+    column(width=4,h3("Expression"),
+           plotOutput(ns("RiboTPM"))),
+    column(width=4,h3("Ontology signature"),
+           htmlOutput(ns("GSEA_pathways")))
+  ))
 }
 
 SmorfSummaryServer=function(id,selected_smORF){
   moduleServer(id,function(input,output,session){
-    output$smORF_summary=renderText({
-      req(selected_smORF())
+    ns=session$ns
+
+    output$ngl <- renderNGLVieweR({
       load_smORF(selected_smORF())
-      smORF_object$Annotation$iORF_ID
+      code_i <- code_names$Code[code_names$Sequence == smORF_object$Annotation$Peptide_Seq]
+      cif_path <- paste0("data_preparation/Structure/", code_i, "/", code_i, "_model_0.cif")
+
+      NGLVieweR(cif_path) %>%
+        stageParameters(list(showBackground = TRUE,
+                             backgroundColor = "white",
+                             backgroundOpacity = 0.8)) %>%
+        addRepresentation(input$style, list(colorScheme = input$color)) %>%
+        setFocus(0) %>%
+        setSpin(FALSE)
     })
+
+    proxy <- NGLVieweR_proxy("ngl", session = session)
+
+    observeEvent(list(input$style, input$color, selected_smORF()), {
+      output$ngl <- renderNGLVieweR({
+        load_smORF(selected_smORF())
+        code_i <- code_names$Code[code_names$Sequence == smORF_object$Annotation$Peptide_Seq]
+        cif_path <- paste0("data_preparation/Structure/", code_i, "/", code_i, "_model_0.cif")
+
+        NGLVieweR(cif_path) %>%
+          stageParameters(list(showBackground = TRUE,
+                               backgroundColor = "white",
+                               backgroundOpacity = 0.8)) %>%
+          addRepresentation(input$style, list(colorScheme = input$color)) %>%
+          setFocus(0) %>%
+          setSpin(FALSE)
+      })
+    }, ignoreInit = TRUE)
+
+    observeEvent(input$spin, ignoreInit = TRUE, {
+      proxy %>% updateSpin(input$spin)
+    })
+
+
+    output$smORF_summary=renderUI({
+      load_smORF(selected_smORF())
+      HTML(smORF_summary_text(smORF_object))
+    })
+
+    output$RefPlot=renderPlot({
+      load_smORF(selected_smORF())
+      if (length(smORF_object$Conservation)>1) {
+        plot_ref(smORF=smORF_object)
+      } else {
+        par(mar = c(0,0,0,0))
+        plot(c(0, 1), c(0, 1), ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+        text(x = 0.5, y = 0.5, paste("MSA failed to align this\n","smORF in other species."),
+             cex = 2.2, col = "red")
+      }
+    },height = 300,width = 350)
+
+    output$RiboTPM=renderPlot({
+      load_smORF(selected_smORF())
+      ggplot(smORF_object$TissueTPM,aes(x=Tissue,y=RIBO))+geom_boxplot(fill="darkorange2")+
+        theme_bw()+xlab("")+ylab("TPM")+ggtitle("RIBO expression")+
+        theme(plot.title =element_text(hjust = 0.5,size=15),
+              axis.text.x = element_text(angle = 45,hjust=1,size = 10))},
+      height = 400)
+
+    output$GSEA_pathways=renderUI({
+      load_smORF(selected_smORF())
+      HTML(GO_summary_text(smORF_object))
+      })
   })
 }
 
@@ -116,7 +147,7 @@ DomainUI=function(id){
   tableOutput(ns("DomainTable"))
 }
 
-DomainServer=function(id,selected_smORF){
+DomainServer=function(id,selected_smORF,parent_session){
   moduleServer(id,function(input,output,session){
     output$DomainTable=renderTable({
       load_smORF(selected_smORF())
@@ -502,6 +533,8 @@ ExploreTableUI=function(id){
   ns=NS(id)
   page_fluid(
     h3("Explore smORFs from Annotation"),
+    p(""),
+    p("Click on a smORF to jump to its individual page."),
     dataTableOutput(ns("ExploreTable")),
     br(),
     downloadButton(ns("Download"),"Download Original Table")
@@ -509,30 +542,51 @@ ExploreTableUI=function(id){
 }
 
 
-ExploreTableServer=function(id){
+ExploreTableServer=function(id,parent_session){
   moduleServer(id,function(input,output,session){
-    reactive_df=reactive(datatable(rownames = F,
-                                   df_DT,
-                                   filter = list(position = 'top', clear = FALSE),
-                                   extensions = "Buttons",
-                                   options = list(paging = TRUE,
-                                                  scrollX=TRUE,
-                                                  searching = TRUE,
-                                                  ordering = TRUE,
-                                                  dom = 'lBtip',
-                                                  buttons = c('copy', 'csv', 'excel', 'pdf'),
-                                                  pageLength=10,
-                                                  lengthMenu=c(10,20,50,100) )
-    ))
+
     output$ExploreTable=renderDataTable({
-      reactive_df()
+      datatable(rownames = F,
+                df_DT,
+                filter = list(position = 'top', clear = FALSE),
+                extensions = "Buttons",
+                escape = F,
+                selection = "none",
+                options = list(paging = TRUE,
+                               scrollX=TRUE,
+                               searching = TRUE,
+                               ordering = TRUE,
+                               dom = 'lBtip',
+                               buttons = c('copy', 'csv', 'excel', 'pdf'),
+                               pageLength=5,
+                               lengthMenu=c(5,10,20,50,100) )
+      )
     })
+
     output$Download=downloadHandler(
       filename = function(){"smORFs.csv"},
       content = function(fname){
         write.csv(Annotation, fname)
       }
     )
+
+    proxy <- DT::dataTableProxy("ExploreTable", session = session)
+
+    observeEvent(input$ExploreTable_cell_clicked,{
+      if (length(input$ExploreTable_cell_clicked)>0) {
+        clicked_row <- input$ExploreTable_cell_clicked$row
+        smorf_id <- df_DT[clicked_row, 1]
+        load_smORF(smorf_id)
+        updateSelectInput(parent_session,"smORF-smORF_ID",selected = smorf_id)
+        nav_select("navbar",selected = "smORF",session = parent_session)
+      }
+    })
+
+    observeEvent(parent_session$input$navbar, {
+      if (identical(parent_session$input$navbar, "Explore")) {
+        DT::selectRows(proxy, NULL)
+      }
+    })
   })
 }
 
@@ -540,32 +594,49 @@ ExplorePathwaysUI=function(id){
   ns=NS(id)
   fluidPage(
     h3("Explore smORFs from ontology enrichment"),
+    p("Click on a smORF to jump to its individual page."),
     selectInput(ns("Pathway"),"Select a pathway",selected = "KEGG_ABC_TRANSPORTERS",
-                choices = colnames(RiboAllMerged),width = "100%"),
+                choices = names(P_to_run2),width = "100%"),
     dataTableOutput(ns("ExplorePathways"))
   )
 }
 
 
-ExplorePathwaysServer=function(id){
+ExplorePathwaysServer=function(id,parent_session){
   moduleServer(id,function(input,output,session){
-    reactive_df=reactive(datatable(rownames = F,
-                                   data.frame(ID = rownames(RiboAllMerged),
-                                              Gene_Name=gene_names$IDENTIFIER[match(rownames(RiboAllMerged),gene_names$geneID)],
-                                              NES=RiboAllMergedNES[,input$Pathway],
-                                              padj=RiboAllMerged[,input$Pathway]),
-                                   filter = list(position = 'top', clear = FALSE),
-                                   extensions = "Buttons",
-                                   options = list(paging = TRUE,
-                                                  scrollX=TRUE,
-                                                  ordering = TRUE,
-                                                  dom = 'lBtip',
-                                                  buttons = c('copy', 'csv', 'excel', 'pdf'),
-                                                  pageLength=10,
-                                                  lengthMenu=c(10,20,50,100) )
-    ))
+
     output$ExplorePathways=renderDataTable({
-      reactive_df()
+      datatable(rownames = F,
+                                  data.frame(cbind(Explore_smORFs_ID,readRDS(paste0("data/Explore_pathways/",
+                                                                                    input$Pathway,".rds")))),
+                                  filter = list(position = 'top', clear = FALSE),
+                                  extensions = "Buttons",
+                                  options = list(paging = TRUE,
+                                                 scrollX=TRUE,
+                                                 ordering = TRUE,
+                                                 dom = 'lBtip',
+                                                 buttons = c('copy', 'csv', 'excel', 'pdf'),
+                                                 pageLength=10,
+                                                 lengthMenu=c(10,20,50,100)
+                                  ))
+    })
+
+    proxy <- DT::dataTableProxy("ExplorePathways", session = session)
+
+    observeEvent(input$ExplorePathways_cell_clicked,{
+      if (length(input$ExplorePathways_cell_clicked)>0) {
+        clicked_row <- input$ExplorePathways_cell_clicked$row
+        smorf_id <- Explore_smORFs_ID[clicked_row, 1]
+        load_smORF(smorf_id)
+        updateSelectInput(parent_session,"smORF-smORF_ID",selected = smorf_id)
+        nav_select("navbar",selected = "smORF",session = parent_session)
+      }
+    })
+
+    observeEvent(parent_session$input$navbar, {
+      if (identical(parent_session$input$navbar, "Explore")) {
+        DT::selectRows(proxy, NULL)
+      }
     })
   })
 }
@@ -575,31 +646,98 @@ ExploreMutationsUI=function(id){
   ns=NS(id)
   page_fluid(
     h3("Explore smORFs overlapping with GWAS hits"),
+    p("Click on a smORF to jump to its individual page."),
     dataTableOutput(ns("ExploreMutations"))
   )
 }
 
-ExploreMutationsServer=function(id){
+ExploreMutationsServer=function(id,parent_session){
   moduleServer(id,function(input,output,session){
-    reactive_df=reactive(datatable(rownames = F,
-                                   GWAS_results,
-                                   filter = list(position = 'top', clear = FALSE),
-                                   extensions = "Buttons",
-                                   options = list(paging = TRUE,
-                                                  scrollX=TRUE,
-                                                  ordering = TRUE,
-                                                  dom = 'lBtip',
-                                                  buttons = c('copy', 'csv', 'excel', 'pdf'),
-                                                  pageLength=10,
-                                                  lengthMenu=c(10,20,50,100) )
-    ))
     output$ExploreMutations=renderDataTable({
-      reactive_df()
+      datatable(rownames = F,
+                GWAS_results,
+                filter = list(position = 'top', clear = FALSE),
+                extensions = "Buttons",
+                options = list(paging = TRUE,
+                               scrollX=TRUE,
+                               ordering = TRUE,
+                               dom = 'lBtip',
+                               buttons = c('copy', 'csv', 'excel', 'pdf'),
+                               pageLength=10,
+                               lengthMenu=c(10,20,50,100) )
+      )
+    })
+
+    proxy <- DT::dataTableProxy("ExploreMutations", session = session)
+
+    observeEvent(input$ExploreMutations_cell_clicked,{
+      if (length(input$ExploreMutations_cell_clicked)>0) {
+        clicked_row <- input$ExploreMutations_cell_clicked$row
+        smorf_id <- GWAS_results$iORF_id[clicked_row]
+        load_smORF(smorf_id)
+        updateSelectInput(parent_session,"smORF-smORF_ID",selected = smorf_id)
+        nav_select("navbar",selected = "smORF",session = parent_session)
+      }
+    })
+
+    observeEvent(parent_session$input$navbar, {
+      if (identical(parent_session$input$navbar, "Explore")) {
+        DT::selectRows(proxy, NULL)
+      }
     })
   })
 }
 
 
+#### Find Page ####
+
+
+FindTableUI=function(id){
+  ns=NS(id)
+  fluidPage(
+    h3("Find your smORF"),
+    p("Click on a smORF to jump to its individual page."),
+    dataTableOutput(ns("FindTable")),
+  )
+}
+
+FindTableServer=function(id,parent_session){
+  moduleServer(id,function(input,output,session){
+    output$FindTable=DT::renderDataTable({
+      datatable(df_DT[,c(1,2,3,7)],
+                filter = list(position = 'top', clear = FALSE),
+                extensions = "Buttons",
+                options = list(paging = TRUE,
+                               scrollX=TRUE,
+                               searching = TRUE,
+                               ordering = TRUE,
+                               dom = 'lBtip',
+                               buttons = c('copy', 'csv', 'excel', 'pdf'),
+                               pageLength=10,
+                               lengthMenu=c(5,10,20,50,100)),
+                rownames = F
+    )},selection = list(mode="single",target="row"))
+
+    proxy <- DT::dataTableProxy("FindTable", session = session)
+
+    observeEvent(input$FindTable_cell_clicked,{
+      if (length(input$FindTable_cell_clicked)>0) {
+        clicked_row <- input$FindTable_cell_clicked$row
+        smorf_id <- df_DT[clicked_row, 1]
+        load_smORF(smorf_id)
+        updateSelectInput(parent_session,"smORF-smORF_ID",selected = smorf_id)
+        nav_select("navbar",selected = "smORF",session = parent_session)
+      }
+    })
+
+    observeEvent(parent_session$input$navbar, {
+      if (identical(parent_session$input$navbar, "Find")) {
+        DT::selectRows(proxy, NULL)
+      }
+    })
+
+  })
+}
 
 
 

@@ -154,28 +154,28 @@ Female_anatogram=function(GTex_mean){
 Bubble_simple=function(GSEA,n){
   padj=GSEA[[1]]
   NES=GSEA[[2]]
-  
+
   top_n=as.data.frame(apply(padj,2,order))
   top_n=unlist(top_n[1:n,])
   top_n=top_n[!duplicated(top_n)]
   top_n=rownames(NES)[top_n]
-  
+
   NES=NES[top_n,]
   padj=padj[top_n,]
-  
+
   score_df=as.data.frame(-log10(padj)*NES)
   score_df=as.data.frame(score_df)
   score_df[which(score_df=="NaN",arr.ind = T)]=0
   score_df[which(score_df=="Inf",arr.ind = T)]=sort(unique(unlist(c(score_df))),decreasing = T)[2]
-  
+
   hclust_score <- hclust(dist(score_df), method = "complete")
   ordre=hclust_score$order
-  
+
   toplot=data.frame(Tissue=rep(colnames(NES),each=nrow(NES)),Pathways=rownames(NES),NES=unlist(NES),padj=as.numeric(unlist(padj)))
   toplot$Pathways=factor(toplot$Pathways,levels=rownames(score_df)[ordre])
-  
+
   toplot=toplot[toplot$Pathways%in%top_n,]
-  
+
   ggplot(toplot,aes(x=Tissue,y=Pathways,size=-log10(as.numeric(padj)),
                     col=as.numeric(NES)))+
     geom_point()+theme_classic()+
@@ -300,10 +300,33 @@ clusterText=function(){
            "to cluster together."),style = "text-align: justify;")
 }
 
+GO_summary_text=function(smORF_object){
+  GO_i=smORF_object$GSEA$Ribo
+  if (length(GO_i)>0) {
+    if (length(GO_i[[1]])>5) {
+      top_pathways_i=rownames(GO_i[[1]])[1:5]
+    } else {
+      top_pathways_i=rownames(GO_i[[1]])
+      }
+    Text=paste0("The top pathways enriched for this smORF in our Ribo all tissue GSEA are:<br/>",
+                 paste0(top_pathways_i,collapse = "<br/>"))
+  } else {
+    Text="This smORF was not sufficiently expressed to compute GSEA at the ribo level."
+  }
+  return(Text)
+}
+
+smORF_summary_text=function(smORF_object){
+  Text_i=paste(colnames(smORF_object$Annotation),smORF_object$Annotation[1,],sep = ": ")
+  Text_i=paste0(Text_i,collapse = "<br/>")
+  return(Text_i)
+}
 
 
-
-
+make_smorf_link = function(id) {
+  href = paste0("?tab=smORF&id=", utils::URLencode(id, reserved = TRUE))
+  sprintf('<a href="%s">%s</a>', href, id)
+}
 
 
 
