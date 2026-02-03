@@ -1,0 +1,633 @@
+---
+title: "smORF-pro"
+# author: "Baptiste Kerouanton"
+# date: "2025-03-07"
+output: github_document
+---
+
+  ```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-"
+  # out.width = "100%"
+)
+  ```
+
+<!-- # smORF-pro (2) -->
+
+## Structure
+This readme is for to be done after you completed the first readme. We are going to create your shiny. It consists of 3 building blocks
+\
+\
+1. Create one smORF object per smORF\
+2. Pregenerate plots\
+3. Running your shiny app\
+\
+
+## 1 - Create one smORF object per smORF
+
+For a smooth experience when navigating the ShinyApp, it is important that not all smORFs are loaded all at once, to make the app robust, we have to create one rds object per smORF. Create a smORF_objects folder in your main repository, this is where we will store all the objects. First start to load the data that will be needed for your smORFs:
+
+
+``` r
+# Library required
+library(data.table)
+library(ggplot2)
+library(ggmsa)
+library(gridExtra)
+library(rtracklayer)
+library(Matrix)
+
+setwd("~/smORF-pro/")
+
+# Data to pre-load only once for expression in your own RNA / Ribo data as well as GTex
+load("tpm_data.Rdata")
+GTex_Annotation=fread("GTEx_Analysis_v8_Annotations_SampleAttributesDS.csv")
+GTex=fread("GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct")
+GTex$Name=gsub("\\..*","",GTex$Name)
+GTex=as.data.frame(GTex)
+GTex=GTex[!duplicated(GTex$Name),]
+rownames(GTex)=GTex$Name
+
+# Load your annotation
+Annotation=read.csv("Annotation.csv")
+
+# Load your results obtained from the first readme
+deeploc=read.csv("Deeploc.csv")
+rownames(deeploc)=deeploc$Protein_ID
+deeploc=deeploc[,4:13]
+
+P_to_run=readRDS("~/smORF-pro/data/P_to_run.rds")
+
+RiboAllMerged=fread("data_preparation/Expression/Coexpression/Ribo/padj_matrices/padj_All.txt")
+RiboAllMerged=as.data.frame(RiboAllMerged)
+rownames(RiboAllMerged)=RiboAllMerged[,1]
+RiboAllMerged=RiboAllMerged[,-1]
+
+RiboAllMergedNES=fread("data_preparation/Expression/Coexpression/Ribo/NES_matrices/NES_All.txt")
+RiboAllMergedNES=as.data.frame(RiboAllMergedNES)
+rownames(RiboAllMergedNES)=RiboAllMergedNES[,1]
+RiboAllMergedNES=RiboAllMergedNES[,-1]
+
+# make RiboMerged files smaller
+sig=as.data.frame(which(RiboAllMerged<0.05,arr.ind = T))
+all_genes_sig=unique(sig$row)
+all_genes_sig=unique(sig$row)
+all_pathways_sig=unique(sig$col)
+
+new_ribomerged=RiboAllMerged[all_genes_sig,all_pathways_sig]
+
+new_ribomerged=new_ribomerged[rownames(new_ribomerged)%in%Annotation$iORF_ID,]
+new_ribomergedNES=RiboAllMergedNES[rownames(new_ribomerged),colnames(new_ribomerged)]
+
+saveRDS(new_ribomerged,"data/Ribo_All_gsea_padj.rds")
+saveRDS(new_ribomergedNES,"data/Ribo_All_gsea_NES.rds")
+
+gene_names=data.frame(geneID=rownames(RiboAllMerged),
+                      IDENTIFIER=NA)
+gene_names$IDENTIFIER[which(gene_names$geneID%in%Annotation$iORF_ID)]=Annotation$Gene_name[match(gene_names$geneID[which(gene_names$geneID%in%Annotation$iORF_ID)],
+                                                                                                 Annotation$iORF_ID)]
+
+GTF=as.data.frame(import("data_preparation/Make GTF/smORFs.gtf"))
+GTF=GTF[GTF$type=="orfCDS",]
+
+coexpr_corr=readRDS("data_preparation/Expression/Coexpression/Ribo/Coexpression_tables/corr/coexpr_smORFs_Ribo_All.RData")
+coexpr_pval=readRDS("data_preparation/Expression/Coexpression/Ribo/Coexpression_tables/pval/coexpr_smORFs_pval_Ribo_All.RData")
+
+msa_files=list.files("data_preparation/Genetic_Information/Conservation/fasta/protein/msa/")
+dist_mat_files=list.files("data_preparation/Genetic_Information/Conservation/fasta/protein/Dist_mat/")
+fa_files=list.files("data_preparation/Genetic_Information/Conservation/fasta/")
+
+```
+Once all the pre-requisite data is loaded. We can load functions that will be used within the loop to create all smORF objects. 
+
+``` r
+
+smORF_tpm_plot=function(ORF="ENCT00000011417_ncRNA_3730"){ # plot the tpm RNA and RIBO for a given smORF
+  ribo_tpm=tpm_data[[3]]
+  rna_tpm=tpm_data[[4]]
+  coldata_ribo=tpm_data[[1]]
+  coldata_rna=tpm_data[[2]]
+  ribo_i=ribo_tpm[rownames(ribo_tpm)==ORF,]
+  rna_i=rna_tpm[rownames(rna_tpm)==ORF,]
+  df_i=data.frame(Tissue=coldata_ribo$V2,RNA=0,RIBO=0)
+  for (i in unique(df_i$Tissue)) {
+    df_i_tissue_i=which(df_i$Tissue==i)
+
+    sample_ribo_tissue_i=coldata_ribo$V1[which(coldata_ribo$V2==i)]
+    df_i$RIBO[df_i_tissue_i]=as.numeric(ribo_i[sample_ribo_tissue_i])
+
+    sample_rna_tissue_i=coldata_rna$V1[which(coldata_rna$V2==i)]
+    df_i$RNA[df_i_tissue_i]=as.numeric(rna_i[sample_rna_tissue_i])
+  }
+  df_i$Tissue=as.factor(df_i$Tissue)
+}
+
+
+GSEA_top10=function(ID="ID",type="GTex"){
+  if (type=="GTex") {
+    NES=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/GTex/NES_per_gene/",ID,".txt"))))
+    padj=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/GTex/padj_per_gene/",ID,".txt"))))
+
+    names_GTex=as.character(NES[1,])
+    names_GTex=substr(names_GTex,14,nchar(names_GTex)-22)
+    colnames(NES)=names_GTex
+    colnames(padj)=names_GTex
+
+    NES=as.data.frame(NES[-1,])
+    padj=as.data.frame(padj[-1,])
+    padj=apply(padj,2,as.numeric)
+    rownames(NES)=names(P_to_run)
+    rownames(padj)=names(P_to_run)
+    df=data.frame(Tissue=rep(colnames(NES),each=6153),Pathways=rownames(NES),NES=unlist(NES),padj=as.numeric(unlist(padj)))
+  }
+  if (type=="RNA") {
+    NES=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/RNA/NES_per_gene/",ID,".txt"))))
+    padj=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/RNA/padj_per_gene/",ID,".txt"))))
+
+    names_RNA=as.character(NES[1,])
+    names_RNA=substr(names_RNA,24,nchar(names_RNA)-7-nchar(ID))
+    colnames(NES)=names_RNA
+    colnames(padj)=names_RNA
+
+    NES=as.data.frame(NES[-1,])
+    padj=as.data.frame(padj[-1,])
+    padj=apply(padj,2,as.numeric)
+    rownames(NES)=names(P_to_run)
+    rownames(padj)=names(P_to_run)
+    df=data.frame(Tissue=rep(colnames(NES),each=6153),Pathways=rownames(NES),NES=unlist(NES),padj=as.numeric(unlist(padj)))
+  }
+  if (type=="Ribo") {
+    NES=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/Ribo/NES_per_gene/",ID,".txt"))))
+    padj=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/Ribo/padj_per_gene/",ID,".txt"))))
+
+    names_RIBO=as.character(NES[1,])
+    names_RIBO=substr(names_RIBO,31,nchar(names_RIBO)-7-nchar(ID))
+    colnames(NES)=names_RIBO
+    colnames(padj)=names_RIBO
+
+    NES=as.data.frame(NES[-1,])
+    padj=as.data.frame(padj[-1,])
+    padj=apply(padj,2,as.numeric)
+    rownames(NES)=names(P_to_run)
+    rownames(padj)=names(P_to_run)
+    df=data.frame(Tissue=rep(colnames(NES),each=11316),Pathways=rownames(NES),NES=unlist(NES),padj=as.numeric(unlist(padj)))
+  }
+
+  top_n=as.data.frame(apply(padj,2,order))
+  top_n=unlist(top_n[1:10,])
+  top_n=top_n[!duplicated(top_n)]
+  top_n=rownames(NES)[top_n]
+
+  padj=as.data.frame(padj[top_n,])
+  top_n=rownames(padj[rowSums(padj<=0.05)>=1,])
+  if (length(top_n)==0) {
+    return(NA)
+  } else {
+    padj=apply(padj[top_n,],2,as.numeric)
+    NES=apply(NES[top_n,],2,as.numeric)
+
+    if (length(top_n)==1) {
+      padj=t(as.data.frame(padj))
+      NES=t(as.data.frame(NES))
+    }
+    rownames(padj)=top_n
+    rownames(NES)=top_n
+    return(list(padj,NES))
+  }
+}
+
+GSEA_top10_UTR=function(smorf=smorf1){
+  NES=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/Ribo/NES_per_gene/",smorf1$Name,".txt"))))
+  padj=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/Ribo/padj_per_gene/",smorf1$Name,".txt"))))
+
+  names_RIBO=as.character(NES[1,])
+  names_RIBO=substr(names_RIBO,31,nchar(names_RIBO)-7-nchar(smorf1$Name))
+  colnames(NES)=names_RIBO
+  colnames(padj)=names_RIBO
+
+  NES=as.data.frame(NES[-1,])
+  padj=as.data.frame(padj[-1,])
+  padj=apply(padj,2,as.numeric)
+  rownames(NES)=names(P_to_run)
+  rownames(padj)=names(P_to_run)
+  padj_smORF=padj
+  NES_smORF=NES
+
+  NES=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/Ribo/NES_per_gene/",smorf1$geneID,".txt"))))
+  padj=as.data.frame(t(read.table(paste0("data_preparation/Expression/Coexpression/Ribo/padj_per_gene/",smorf1$geneID,".txt"))))
+
+  names_RIBO=as.character(NES[1,])
+  names_RIBO=substr(names_RIBO,31,nchar(names_RIBO)-7-nchar(smorf1$geneID))
+  colnames(NES)=names_RIBO
+  colnames(padj)=names_RIBO
+
+  NES=as.data.frame(NES[-1,])
+  padj=as.data.frame(padj[-1,])
+  padj=apply(padj,2,as.numeric)
+  rownames(NES)=names(P_to_run)
+  rownames(padj)=names(P_to_run)
+  padj_mORF=padj
+  NES_mORF=NES
+
+
+  top_n=unique(c(rownames(smorf1$GSEA$Ribo[[1]]),rownames(smorf1$GSEA$mORF[[1]])))
+  colnames(NES_smORF)=paste0("smORF - ", colnames(smorf1$GSEA$Ribo[[1]]))
+  colnames(NES_mORF)=paste0("mORF - ", colnames(smorf1$GSEA$mORF[[1]]))
+
+  padj=cbind(padj_smORF,padj_mORF)
+  NES=cbind(NES_smORF,NES_mORF)
+  padj=as.data.frame(padj[top_n,])
+
+  if (length(top_n)==0) {
+    return(NA)
+  } else {
+    padj=apply(padj[top_n,],2,as.numeric)
+    NES=apply(NES[top_n,],2,as.numeric)
+
+    if (length(top_n)==1) {
+      padj=t(as.data.frame(padj))
+      NES=t(as.data.frame(NES))
+    }
+    rownames(padj)=top_n
+    rownames(NES)=top_n
+    return(list(padj,NES))
+  }
+}
+
+
+
+```
+
+Once these functions are loaded, we can go through the loop to create our smORF objects.
+
+``` r
+
+ORFs=Annotation$iORF_ID
+for (i in 1:length(ORFs)) {
+  print(i)
+  ORF=ORFs[i]
+  smorf1=list()
+
+  # $Name of smORF
+  smorf1[["Name"]]=ORF
+
+  # $geneID of smORF
+  smorf1[["geneID"]]=Annotation$Gene_id[which(Annotation$iORF_ID==ORF)]
+
+  # $Annotation from smORF table
+  smorf1[["Annotation"]]=Annotation[Annotation$iORF_ID==ORF,]
+
+  # $Conservation of the smORF. This is directly the plot
+  if (paste0(ORF,".msa")%in%msa_files) {
+    msa_name=paste0("data_preparation/Genetic_Information/Conservation/fasta/protein/msa/",ORF,".msa")
+    msa_i=as.data.frame(fread(msa_name,header = F,fill = T))
+    Conservation=ggmsa(msa_name,char_width = 0.6, seq_name = T,border = "black",ignore_gaps = T)+ geom_msaBar()
+    smorf1[["Conservation"]]=list()
+    smorf1[["Conservation"]][["plot"]]=Conservation
+    smorf1[["Conservation"]][["nb_species"]]=nrow(msa_i)/2
+    smorf1[["Conservation"]][["max_L"]]=max(nchar(msa_i[2*1:(nrow(msa_i)/2),1]))
+
+    if (paste0(ORF,".mat")%in%dist_mat_files) {
+      dist_mat=as.data.frame(fread(paste0("data_preparation/Genetic_Information/Conservation/fasta/protein/Dist_mat/",ORF,".mat")))
+      rownames(dist_mat)=make.names(dist_mat[,1],unique = T)
+      dist_mat=dist_mat[,-1]
+      colnames(dist_mat)=rownames(dist_mat)
+      conservation_df_i=data.frame(Human=100,
+                                   Chimp=ifelse(is.numeric(dist_mat$Chimp),dist_mat$Chimp[1],0),
+                                   Rat=ifelse(is.numeric(dist_mat$Rat),dist_mat$Rat[1],0),
+                                   Mouse=ifelse(is.numeric(dist_mat$Mouse),dist_mat$Mouse[1],0),
+                                   Zebrafish=ifelse(is.numeric(dist_mat$Zebrafish),dist_mat$Zebrafish[1],0))
+      smorf1[["Conservation"]][["df"]]=conservation_df_i
+
+      Annotation_extra$Human[i]=smorf1$Conservation$df[1]
+      Annotation_extra$Chimp[i]=smorf1$Conservation$df[2]
+      Annotation_extra$Rat[i]=smorf1$Conservation$df[3]
+      Annotation_extra$Mouse[i]=smorf1$Conservation$df[4]
+      Annotation_extra$Zebrafish[i]=smorf1$Conservation$df[5]
+    }
+  } else {
+    smorf1[["Conservation"]]=0
+  }
+
+  nt_fa_name=paste0(ORF,".fa")
+  if (nt_fa_name%in%fa_files) {
+    nt_seq=read.table(paste0("~/smORF-pro/data_preparation/Genetic_Information/Conservation/fasta/",ORF,".fa"))
+    nt_seq=nt_seq$V1[grep("hg38",nt_seq$V1,value = F)+1]
+
+    smorf1[["nt_seq"]]=nt_seq
+  }
+
+
+  smorf1[["gtf"]]=GTF[grep(ORF,GTF$iORF_id),c(1:5,7)]
+
+
+  # $Tissue TPM
+
+  TPM_plot=smORF_tpm_plot(ORF)
+  smorf1[["TissueTPM"]]=TPM_plot
+
+  IDs_to_keep=GTex_Annotation$SAMPID[GTex_Annotation$SAMPID%in%colnames(GTex)]
+  geneID=Annotation$Gene_id[Annotation$iORF_ID==ORF]
+  df_gtex=data.frame(samp_ID=IDs_to_keep,Tissue=GTex_Annotation$SMTSD[GTex_Annotation$SAMPID%in%IDs_to_keep],RNA=0)
+  df_gtex$RNA=as.numeric(GTex[geneID,df_gtex$samp_ID])
+  GTex_tissues=unique(df_gtex$Tissue)
+  mean_GTex=data.frame(Tissue=GTex_tissues,
+                       RNA_TPM=0)
+  for (t in 1:nrow(mean_GTex)) {
+    mean_GTex$RNA_TPM[t]=mean(df_gtex$RNA[which(df_gtex$Tissue==mean_GTex$Tissue[t])])
+  }
+  smorf1[["GTex_mean"]]=mean_GTex
+
+  # $Deeploc
+  if (ORF%in%rownames(deeploc)) {
+    smorf1[["Deeploc"]]=as.data.frame(deeploc[ORF,])
+  }
+
+  #smorf1[["RiboGSEAsig"]]=colnames(RiboAllMerged)[which(RiboAllMerged[ORF,]<=0.05)]
+
+  if (ORF%in%rownames(coexpr_corr)) {
+    smorf1[["Coexpr"]]=data.frame(ID=rownames(coexpr_corr),
+                                  corr=coexpr_corr[,ORF],
+                                  pval=coexpr_pval[,ORF])
+  }
+
+  smorf1[["GSEA"]]=list()
+  if (paste0(smorf1$geneID,".txt")%in%list.files("data_preparation/Expression/Coexpression/GTex/NES_per_gene/")) {
+    smorf1[["GSEA"]][["GTex"]]=GSEA_top10(ID=smorf1$geneID,type = "GTex")
+  }
+
+  if (paste0(smorf1$geneID,".txt")%in%list.files("data_preparation/Expression/Coexpression/RNA/NES_per_gene/")) {
+    smorf1[["GSEA"]][["RNA"]]=GSEA_top10(ID=smorf1$geneID,type = "RNA")
+  }
+
+  if (paste0(smorf1$Name,".txt")%in%list.files("data_preparation/Expression/Coexpression/Ribo/NES_per_gene/")) {
+    smorf1[["GSEA"]][["Ribo"]]=GSEA_top10(ID=smorf1$Name,type = "Ribo")
+  }
+
+  if (paste0(smorf1$geneID,".txt")%in%list.files("data_preparation/Expression/Coexpression/Ribo/NES_per_gene/")) {
+    smorf1[["GSEA"]][["mORF"]]=GSEA_top10(ID=smorf1$geneID,type = "Ribo")
+  }
+
+  if (length(smorf1$GSEA$Ribo)==2 & length(smorf1$GSEA$mORF)==2) {
+    smorf1[["GSEA"]][["UTR"]]=GSEA_top10_UTR(smorf = smorf1)
+  }
+  saveRDS(smorf1,paste0("smORF_objects/",ORF,".rds"))
+}
+
+```
+
+
+Now you should have one rds file per smORF in your smORF_objects folder.
+
+## 2 - Pregenerate plots
+
+Generating a plot can be quite lengthy, it requires data that can be heavy, processing time, and rendering output time. To prevent the ShinyApp from being too slow to generate each plot as the user interacts with the app, the most comfortable way for the user is if every plots are already pregenerated. R plots are very light once saved and easy to store and to reproduce. Plots need to be stored in the www folder for the ShinyApp to be able to use them.
+
+``` r
+# Script for generating images for single cell tab
+
+setwd("~/smORF-pro/")
+
+library(Seurat)
+
+# Heart single cell
+sc=readRDS("data_preparation/Expression/Single_cell/Heart_rna_data.rds")
+Annotation=read.csv("data/Annotation_full.csv")#[1:100,]
+
+
+png("www/heart_sc.png",height = 500,width=1100)
+DimPlot(sc,reduction = "umap")
+dev.off()
+
+genes=unique(Annotation$Gene_name)
+genes=genes[-which(is.na(genes))]
+
+for (i in 1:length(genes)) {
+  print(i)
+  gene_i=genes[i]
+
+  if (gene_i%in%rownames(sc)) {
+    png(paste0("www/Heart/",gene_i,"_F.png"),height = 500,width=600)
+    print(FeaturePlot(sc,gene_i))
+    dev.off()
+
+    png(paste0("www/Heart/",gene_i,"_V.png"),height = 500,width=1800)
+    print(VlnPlot(sc,gene_i,sort = "decreasing"))
+    dev.off()
+  }
+}
+
+
+
+# For GTex expression TPM
+
+GTex_Annotation=fread("GTEx_Analysis_v8_Annotations_SampleAttributesDS.csv")
+GTex=fread("GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct")
+GTex$Name=gsub("\\..*","",GTex$Name)
+GTex=as.data.frame(GTex)
+GTex=GTex[!duplicated(GTex$Name),]
+rownames(GTex)=GTex$Name
+
+IDs_to_keep=GTex_Annotation$SAMPID[GTex_Annotation$SAMPID%in%colnames(GTex)]
+GTex=GTex[rownames(GTex)%in%Annotation$Gene_id,IDs_to_keep]
+
+for (i in 1:nrow(GTex)) {
+  print(i)
+  geneID=rownames(GTex)[i]
+  df_gtex=data.frame(samp_ID=IDs_to_keep,Tissue=GTex_Annotation$SMTSD[GTex_Annotation$SAMPID%in%IDs_to_keep],RNA=0)
+  df_gtex$RNA=as.numeric(GTex[geneID,df_gtex$samp_ID])
+
+  png(paste0("www/GTex_Expression/",geneID,".png"),width=1800,height=700)
+  print(ggplot(df_gtex,aes(x=Tissue,y=RNA))+geom_boxplot(fill="deepskyblue1")+
+    theme_bw()+xlab("")+ylab("TPM")+ggtitle("RNA expression")+
+    theme(plot.title =element_text(hjust = 0.5,size=15),
+          axis.text.x = element_text(angle = 90,hjust=1)))
+  dev.off()
+}
+
+
+
+# plot for conservation
+
+for (i in 1:nrow(Annotation)) {
+  print(i)
+  ORF_ID=Annotation$iORF_ID[i]
+  smORF_object=readRDS(paste0("smORF_objects/",ORF_ID,".rds"))
+
+  if (length(smORF_object$Conservation)>1) {
+
+    png(paste0("www/Conservation/",ORF_ID,".png"),
+        width=50+30*smORF_object$Conservation$max_L,
+        height=20+30*smORF_object$Conservation$nb_species)
+    print(smORF_object$Conservation$plot)
+    dev.off()
+  }
+}
+
+
+# Pregenerate for GO clustering
+
+GO_cluster=readRDS("data_preparation/Expression/Coexpression/Ribo/GO_clusters/Clusters_All.rds")
+
+png("www/GO_cluster.png",width=700,height=500)
+DimPlot(GO_cluster,reduction = "umap",label = T,label.size = 8)
+dev.off()
+
+DimPlot(GO_cluster,reduction = "umap",label = T,
+        cols = c(rep("grey",11),"dodgerblue",rep("grey",5),"#FC8D59",rep("grey",3)))
+DimPlot(GO_cluster,
+        cells=c(names(Idents(GO_cluster[,which(Idents(GO_cluster)%in%c(as.character(0:10),as.character(12:16),as.character(18:20)))])),
+                names(Idents(GO_cluster[,which(Idents(GO_cluster)%in%c("11","17"))]))),
+        reduction = "umap",label = T,
+        cols = c(rep("grey",11),"dodgerblue",rep("grey",5),"#FC8D59",rep("grey",3)))
+
+ggsave("Highlight_clusters_11_17.pdf",width = 160,height=120,units="mm")
+
+
+
+# pregenerate for deeploc
+
+library(png)
+library(raster)
+cell_img=as.raster(readPNG("data/Cell organelle.png"))
+organelles=readRDS("data/Organelles.rds")
+
+for (i in 1:nrow(Annotation)) {
+  print(i)
+  ORF_ID_i=Annotation$iORF_ID[i]
+  smORF_object=readRDS(paste0("smORF_objects/",ORF_ID_i,".rds"))
+  if (length(smORF_object$Deeploc)>0) {
+    png(paste0("www/Deeploc/",ORF_ID_i,".png"),width = 700,height=500)
+    plot_cell_sublocation(deeploc_i = smORF_object$Deeploc)
+    dev.off()
+  }
+}
+
+
+# Pregenerate pathways for explore
+
+FolderData="data/Explore_pathways/"
+
+RiboAllMerged=readRDS("data/Ribo_All_gsea_padj.rds")
+RiboAllMergedNES=readRDS("data/Ribo_All_gsea_NES.rds")
+
+ExploreMergedID_Names=data.frame(ID = rownames(RiboAllMerged),
+                                 Gene_Name=gene_names$IDENTIFIER[match(rownames(RiboAllMerged),gene_names$geneID)])
+
+saveRDS(ExploreMergedID_Names,"data/Explore_smORF_ID_names_for_pathways.rds")
+
+for (i in 1:ncol(RiboAllMerged)) {
+  print(i)
+  pathway_i=data.frame(
+             NES=signif(RiboAllMergedNES[,i],4),
+             padj=signif(RiboAllMerged[,i],4))
+  saveRDS(pathway_i,paste0(FolderData,colnames(RiboAllMerged)[i],".rds"))
+}
+
+```
+Now all the data has been processed and made in the format required for the ShinyApp to function.
+
+## 3 - Running your ShinyApp
+
+The shiny app architecture is made out of 4 layers, from the most detailed to the more global:\
+- fun.R : small functions that help to keep the code clear and structured\
+- modules.R : shiny modules and module server, corresponding each to the smallest sub-tabs of the shiny app\
+- structure.R : Calling different modules to create pages\
+- app.R : The main function that conceals all pages together\
+\
+
+To start your shiny app you just have to run the app.R which internally calls the 3 other functions. The app.R was made to keep it as synthetic as possible but still enable the user to deactivate modules by simply commenting them out with a #. You can also comment out specific sub-tab in the structure.R file.
+
+``` r
+
+setwd("~/smORF-pro/")
+#### Load libraries ####
+
+library(shiny)
+library(bslib)
+library(shinydashboard)
+library(ggplot2)
+library(stringr)
+library(shinythemes)
+library(DT)
+library(gganatogram)
+library(seqinr)
+library(NGLVieweR)
+
+#### Load data ####
+Annotation=readRDS("data/Annotation_full.rds")
+df_DT=Annotation
+
+source("fun/fun.R",local = T)
+source("fun/modules.R",local = T)
+source("fun/structure.R",local = T)
+
+Explore_smORFs_ID=readRDS("data/Explore_smORF_ID_names_for_pathways.rds")
+
+code_names=read.csv("data/code_names.csv")
+gene_names=read.csv("data/gene_names.csv")
+
+GO_cluster=readRDS("data/GO_clusters.rds")
+markers=readRDS("data/Cluster_markers_All.rds")
+
+P_to_run=readRDS("data/P_to_run.rds")
+
+load_smORF("ENCT00000053446_ncRNA_3")
+GWAS_results=read.csv("data/GWAS_smORF_overlap.csv")[,-1]
+
+ui=page_navbar(title="smORF-pro",
+               id="navbar",theme = bs_theme(preset = "flatly"),
+               nav_panel("Home",
+                         HomeUI("Home"),
+                         layout_columns(actionButton("smORF",label = "smORF"),
+                                        actionButton("Explore",label = "Explore"),
+                                        actionButton("Find",label = "Find"),
+                                        col_widths = c(4,4,4))),
+               nav_panel("smORF",
+                         smorfUI("smORF")),
+               nav_panel("Explore",
+                         ExploreUI("Explore")),
+               nav_panel("Find",
+                         FindUI("Find"))
+               )
+
+server=function(input,output,session){
+  observeEvent(input$smORF,{
+    nav_select("navbar",selected = "smORF")
+  })
+  observeEvent(input$Explore,{
+    nav_select("navbar",selected = "Explore")
+  })
+  observeEvent(input$Find,{
+    nav_select("navbar",selected = "Find")
+  })
+  HomeServer("Home")
+  smorfServer("smORF",session)
+  ExploreServer("Explore",session)
+  FindServer("Find",session)
+}
+
+shinyApp(ui, server)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
