@@ -1,0 +1,90 @@
+name: smorfpro
+channels:
+  - conda-forge
+  - bioconda
+  - r
+  - defaults
+
+dependencies:
+  # R base and essential R packages
+  - r-base=4.3
+  - r-essentials
+  
+  # Core Shiny packages
+  - r-shiny
+  - r-shinydashboard
+  - r-bslib
+  - r-shinythemes
+  - r-dt
+  
+  # Data manipulation packages
+  - r-data.table
+  - r-dplyr
+  - r-tidyverse
+  - r-reshape
+  - r-reshape2
+  
+  # Visualization packages
+  - r-ggplot2
+  - r-gridextra
+  - r-colorspace
+  - r-rcolorbrewer
+  - r-pheatmap
+  
+  # Bioinformatics packages (Bioconductor)
+  - bioconductor-rtracklayer
+  - bioconductor-genomicranges
+  - r-seqinr
+  - r-ggmsa
+  
+  # Analysis packages
+  - r-wgcna
+  - bioconductor-deseq2
+  - r-seurat
+  - r-matrix
+  - r-presto
+  
+  # Specialized packages
+  - r-gganatogram
+  - r-nglviewer
+  - r-peptides
+  - r-png
+  - r-raster
+  
+  # Phylogenetics packages
+  - r-ape
+  - r-phylogram
+  - r-phytools
+  - r-ggimage
+  
+  # Python and Python packages
+  - python=3.10
+  - biopython
+  - bx-python
+  - pandas
+  
+  # Command-line tools
+  - perl
+  - clustalo
+  
+  # System dependencies
+  - gcc
+  - gfortran
+  - make
+
+# Installation Instructions:
+# 1. Create the environment: conda env create -f environment.yml
+# 2. Activate the environment: conda activate smorfpro
+# 3. Install additional R packages that are not available via conda:
+#    - Open R: R
+#    - Install BiocManager if needed: install.packages("BiocManager")
+#    - Install missing Bioconductor packages:
+#      BiocManager::install(c("fgsea", "ggtree"))
+#    - Install missing CRAN packages:
+#      install.packages(c("rphylopic", "deeptime"))
+#
+# Note: The following tools are mentioned in the README but may need separate installation:
+# - deeploc2: Can be installed via conda with: conda install -c bioconda deeploc2
+# - interproscan: Requires separate installation from https://www.ebi.ac.uk/interpro/download/
+# - DeepTMHMM: Web-based tool, but local version may be available
+# - TargetP 2.0: Web-based tool

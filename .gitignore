@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Project folders (user-generated data)
+projects/
