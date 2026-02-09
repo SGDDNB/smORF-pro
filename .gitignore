@@ -5,3 +5,6 @@
 
 # Project folders (user-generated data)
 projects/
+
+# Assets folder (downloaded data files)
+assets/
