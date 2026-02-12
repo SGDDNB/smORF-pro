@@ -3,16 +3,18 @@ smORF-pro
 
 <!-- # smORF-pro -->
 
-## Structure
+## Overview
 
-This readme is for running all the prerequisites data analysis to be
-done before being able to start the shiny app. Once you have completed
-this readme, you can integrate all the results into one shinyapp by
-following the steps in the README_ShinyApp.Rmd .
+smORF-pro provides a complete Conda/R environment, a Shiny interface for
+processing a file of smORFs end-to-end, and a set of R functions/scripts
+you can run from the command line to do the same workflows without the UI.
 
-  
-  
-There are 4 categories in the shiny app with all their different
+This README covers the prerequisite data preparation before launching
+the main Shiny app. Once you have completed the steps here, you can
+integrate all results into a single Shiny app by following the steps in
+the README_ShinyApp.Rmd.
+
+There are 4 categories in the Shiny app with all their different
 analysis:  
 1. Amino Acid analysis: Deeploc, DeepTMHMM, Target P, Interproscan  
 2. Genetic Information: Conservation, GWAS  
@@ -32,6 +34,23 @@ and pre-generate plots for every smORF so that the ShinyApp can run
 smoothly. Finally, you can head to the 2nd readme to visualize your own
 ShinyApp.
 
+## General advice
+
+- The first-time MAF indexing step can take hours to days on large files.
+- MAF indexing is very I/O heavy; running on an SSD can significantly speed it up.
+- Expect large downloads and disk usage (MAF, GWAS, GTEx).
+- Correlation and GSEA steps are compute-heavy and may require an HPC.
+- Pre-generate plots for the Shiny app to keep it responsive.
+
+## Environment setup
+
+1. Create the Conda environment:
+   `conda env create -f environment.yml`
+2. Activate it:
+   `conda activate smorfpro`
+3. Install the additional R packages listed in `environment.yml` (use the
+   “Installation Instructions” block at the bottom of that file).
+
 ## I - Amino Acid Analysis
 
 In this part, we describe the tools that are being used which rely
@@ -39,6 +58,84 @@ exclusively on the amino acid sequences of the smORFs. Most of these
 tools need a fasta file as input so the first step is to create a fasta
 file from the smORFs name and amino acid sequence. The results will be
 added as columns to the data.frame “Annotation”.
+
+### Amino acid Shiny app (wizard)
+
+The amino acid analysis wizard lives in `apps/amino_acid_analysis_app.R`.
+Because of licensing restrictions, DeepTMHMM, TargetP, Deeploc and
+Interproscan must be run on their associated webservers or installed
+locally; the app helps you generate the FASTA, upload the result files,
+and combine all outputs into a single Annotation table.
+
+If you prefer the command line, the same workflow is available via the
+functions in `scripts/process_amino_acid_results.R` (e.g.
+`create_fasta_from_annotation()`, `process_deeptmhmm()`,
+`process_targetp()`, `process_deeploc()`, `process_interproscan()`, and
+`integrate_amino_acid_results()`).
+
+**App steps (with screenshot placeholders):**
+1. Step 0 – Upload annotation CSV  
+   Upload your smORF annotation CSV and validate the required columns.  
+   ![Amino acid app - Step 0 upload](docs/images/amino_app_step0_upload.png)
+2. Step 1 – Generate FASTA  
+   Create a FASTA file from the peptide sequences for external tools.  
+   ![Amino acid app - Step 1 FASTA](docs/images/amino_app_step1_fasta.png)
+3. Step 2 – DeepTMHMM (run externally, upload results)  
+   Run DeepTMHMM externally, then upload the 3-line output to add topology calls.  
+   ![Amino acid app - Step 2 DeepTMHMM](docs/images/amino_app_step2_deeptmhmm.png)
+4. Step 3 – TargetP 2.0 (run externally, upload results)  
+   Run TargetP externally, then upload the summary to add localisation predictions.  
+   ![Amino acid app - Step 3 TargetP](docs/images/amino_app_step3_targetp.png)
+5. Step 4 – Deeploc 2.0 (run externally, upload results)  
+   Run Deeploc externally, then upload the CSV summary to add localisation labels.  
+   ![Amino acid app - Step 4 Deeploc](docs/images/amino_app_step4_deeploc.png)
+6. Step 5 – Interproscan (run externally, upload results)  
+   Run Interproscan externally, then upload the TSV to add domain annotations.  
+   ![Amino acid app - Step 5 Interproscan](docs/images/amino_app_step5_interproscan.png)
+7. Step 6 – Integration & results (save combined outputs)  
+   Combine all results into the Annotation table and save project outputs.  
+   ![Amino acid app - Step 6 Results](docs/images/amino_app_step6_results.png)
+
+The sections below describe the workflow that the app guides you through
+and that the command-line functions implement.
+
+**smORF annotation CSV (full format)**  
+smORF-pro can start from a single annotation CSV that works for all steps.
+The core columns are used for the amino-acid workflow, and exon
+coordinates are required only if you plan to generate a GTF for
+genetic-information analyses.
+
+**Required core columns (for all workflows):**
+- `ORF_id`
+- `iORF_type`
+- `Source`
+- `gene_name`
+- `gene_biotype`
+- `gene_id`
+- `len` (nucleotide length)
+- `starts` (start codon)
+- `Peptide.seq` (amino-acid sequence)
+
+**Additional columns needed for GTF conversion (genetic-information steps):**
+- `nt_seq` (nucleotide sequence; optional if you do not need it downstream)
+- `strand` (`+` or `-`)
+- `Chr` (chromosome)
+- `Start`, `End` (genomic coordinates for the ORF)
+- `S_exon1`, `E_exon1`
+- `S_exon2`, `E_exon2` (use `NA` if not applicable)
+- `S_exon3`, `E_exon3` (use `NA` if not applicable)
+
+**Note on exon counts:**  
+The example CSV shows three exon pairs, but some smORFs have more than
+three exons. If your data do not fit this simplified CSV structure, it
+may be more appropriate to start from a GTF directly (which can
+represent any number of exons).
+
+A helper is provided to convert this CSV into a GTF for conservation and
+GWAS overlap steps (see **II - Genetic information**).
+
+**Example header (full format):**  
+`ORF_id,iORF_type,Source,gene_name,gene_biotype,gene_id,len,starts,Peptide.seq,nt_seq,strand,Chr,Start,End,S_exon1,E_exon1,S_exon2,E_exon2,S_exon3,E_exon3`
 
 ``` r
 # Load example files
