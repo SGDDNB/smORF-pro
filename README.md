@@ -76,25 +76,25 @@ functions in `scripts/process_amino_acid_results.R` (e.g.
 **App steps (with screenshot placeholders):**
 1. Step 0 – Upload annotation CSV  
    Upload your smORF annotation CSV and validate the required columns.  
-   ![Amino acid app - Step 0 upload](docs/images/amino_app_step0_upload.png)
+   ![Amino acid app - Step 0 upload](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step0_upload.png)
 2. Step 1 – Generate FASTA  
    Create a FASTA file from the peptide sequences for external tools.  
-   ![Amino acid app - Step 1 FASTA](docs/images/amino_app_step1_fasta.png)
+   ![Amino acid app - Step 1 FASTA](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step1_fasta.png)
 3. Step 2 – DeepTMHMM (run externally, upload results)  
    Run DeepTMHMM externally, then upload the 3-line output to add topology calls.  
-   ![Amino acid app - Step 2 DeepTMHMM](docs/images/amino_app_step2_deeptmhmm.png)
+   ![Amino acid app - Step 2 DeepTMHMM](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step2_deeptmhmm.png)
 4. Step 3 – TargetP 2.0 (run externally, upload results)  
    Run TargetP externally, then upload the summary to add localisation predictions.  
-   ![Amino acid app - Step 3 TargetP](docs/images/amino_app_step3_targetp.png)
+   ![Amino acid app - Step 3 TargetP](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step3_targetp.png)
 5. Step 4 – Deeploc 2.0 (run externally, upload results)  
    Run Deeploc externally, then upload the CSV summary to add localisation labels.  
-   ![Amino acid app - Step 4 Deeploc](docs/images/amino_app_step4_deeploc.png)
+   ![Amino acid app - Step 4 Deeploc](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step4_deeploc.png)
 6. Step 5 – Interproscan (run externally, upload results)  
    Run Interproscan externally, then upload the TSV to add domain annotations.  
-   ![Amino acid app - Step 5 Interproscan](docs/images/amino_app_step5_interproscan.png)
+   ![Amino acid app - Step 5 Interproscan](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step5_interproscan.png)
 7. Step 6 – Integration & results (save combined outputs)  
    Combine all results into the Annotation table and save project outputs.  
-   ![Amino acid app - Step 6 Results](docs/images/amino_app_step6_results.png)
+   ![Amino acid app - Step 6 Results](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step6_results.png)
 
 The sections below describe the workflow that the app guides you through
 and that the command-line functions implement.
