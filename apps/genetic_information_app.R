@@ -76,11 +76,26 @@ server <- function(input, output, session) {
     maf_index_errors = FALSE
   )
   
+  is_maf_indexed <- function(maf_files_list) {
+    nrow(maf_files_list) > 0 &&
+      "has_index" %in% colnames(maf_files_list) &&
+      all(maf_files_list$has_index, na.rm = TRUE)
+  }
+
+  update_maf_index_status <- function(maf_files_list) {
+    indexed <- is_maf_indexed(maf_files_list)
+    rv$maf_indexed <- indexed
+    if (indexed) {
+      rv$step_complete[3] <- TRUE
+    }
+  }
+  
   # Initialize: Check for Clustal Omega and scan assets folders
   observe({
     rv$clustalo_available <- check_clustalo_available()
     rv$maf_files_list <- check_maf_files(from_apps = TRUE)
     rv$gwas_files_list <- check_gwas_catalog(from_apps = TRUE)
+    update_maf_index_status(rv$maf_files_list)
   })
   
   observeEvent(input$prev_step, {
@@ -252,6 +267,7 @@ server <- function(input, output, session) {
   # Step 2: MAF Indexing - refresh MAF files list
   observeEvent(input$refresh_maf_files, {
     rv$maf_files_list <- check_maf_files(from_apps = TRUE)
+    update_maf_index_status(rv$maf_files_list)
     showNotification("MAF files list refreshed.", type = "message")
   })
   
@@ -284,13 +300,13 @@ server <- function(input, output, session) {
         result <- index_maf_files(maf_files, from_apps = TRUE)
         
         rv$maf_index_output <- result$output
-        rv$maf_indexed <- result$success
         rv$maf_index_errors <- !result$success
         
         setProgress(0.95, detail = "Refreshing file list...")
         
         # Refresh the MAF files list to show renamed files
         rv$maf_files_list <- check_maf_files(from_apps = TRUE)
+        update_maf_index_status(rv$maf_files_list)
         
         setProgress(1.0, detail = "Complete!")
       })
@@ -351,6 +367,7 @@ server <- function(input, output, session) {
         
         # Refresh the MAF files list
         rv$maf_files_list <- check_maf_files(from_apps = TRUE)
+        update_maf_index_status(rv$maf_files_list)
         
         setProgress(1.0, detail = "Complete!")
       })
@@ -476,10 +493,37 @@ server <- function(input, output, session) {
     
     tryCatch({
       withProgress(message = "Running Clustal Omega...", value = 0, {
-        # Implementation would run the clustalo script
-        # For now, show a message
-        showNotification("Clustal Omega analysis would run here. Implementation pending.", type = "message")
-        setProgress(1.0)
+        setProgress(0.1, detail = "Preparing output folders...")
+        
+        msa_dir <- file.path(rv$conservation_output_dir, "fasta", "protein", "msa")
+        dist_dir <- file.path(rv$conservation_output_dir, "fasta", "protein", "dist_mat")
+        dir.create(msa_dir, recursive = TRUE, showWarnings = FALSE)
+        dir.create(dist_dir, recursive = TRUE, showWarnings = FALSE)
+        
+        script_rel <- "data_preparation/Genetic_information/run_clustalo.sh"
+        script_path_from_apps <- file.path("..", script_rel)
+        script_abs <- normalizePath(script_path_from_apps, winslash = "/", mustWork = FALSE)
+        
+        if (!file.exists(script_abs)) {
+          stop("Clustal Omega script not found: ", script_abs)
+        }
+        
+        setProgress(0.3, detail = "Running Clustal Omega (this may take a while)...")
+        
+        old_wd <- getwd()
+        on.exit(setwd(old_wd), add = TRUE)
+        setwd(rv$conservation_output_dir)
+        
+        result <- system(paste("bash", shQuote(script_abs)), intern = TRUE)
+        
+        exit_code <- attr(result, "status")
+        if (is.null(exit_code)) exit_code <- 0
+        
+        if (exit_code != 0) {
+          stop("Clustal Omega failed with exit code: ", exit_code)
+        }
+        
+        setProgress(1.0, detail = "Complete!")
       })
       
       rv$error_message <- ""
@@ -641,6 +685,31 @@ server <- function(input, output, session) {
     !is.null(rv$conservation_output_dir) && dir.exists(rv$conservation_output_dir)
   })
   outputOptions(output, "conservation_completed", suspendWhenHidden = FALSE)
+  
+  get_conservation_summary <- function(output_dir) {
+    expected_files <- c(
+      "start_codon_conservation.txt",
+      "percentage_ids.txt",
+      "stop_codon_conservation.txt",
+      "inframe.txt",
+      "protein_percentage_ids.txt"
+    )
+    paths <- file.path(output_dir, expected_files)
+    exists <- file.exists(paths)
+    size_mb <- ifelse(exists, round(file.info(paths)$size / 1024 / 1024, 2), NA_real_)
+    data.frame(
+      file = expected_files,
+      exists = exists,
+      size_mb = size_mb,
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  output$conservation_summary <- renderTable({
+    req(rv$conservation_output_dir)
+    get_conservation_summary(rv$conservation_output_dir)
+  })
+  
   
   output$gwas_completed <- reactive({
     !is.null(rv$gwas_overlaps)
@@ -917,6 +986,13 @@ step3_ui <- function(rv, input) {
           code(if (!is.null(rv$conservation_output_dir)) rv$conservation_output_dir else "N/A")
       )
     )
+    ,
+    conditionalPanel(
+      condition = "output.conservation_completed",
+      h4("Conservation output summary"),
+      p("Expected output files and their status:"),
+      tableOutput("conservation_summary")
+    )
   )
 }
 
@@ -924,7 +1000,9 @@ step4_ui <- function(rv) {
   tagList(
     h3("Step 4: Clustal Omega Alignment (Optional)"),
     p("Clustal Omega creates multiple sequence alignments and distance matrices from protein alignments."),
-    
+    div(class = "alert alert-warning",
+        tags$strong("Warning: "),
+        "Running this step will overwrite existing MSA and distance matrix outputs."),
     conditionalPanel(
       condition = "output.clustalo_available",
       div(class = "alert alert-success",

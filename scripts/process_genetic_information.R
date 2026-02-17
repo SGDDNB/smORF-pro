@@ -514,8 +514,8 @@ find_gwas_overlaps <- function(gtf_path, gwas_file, output_path = NULL) {
   suppressed_require("GenomicRanges")
   suppressed_require("data.table")
   
-  # Read GWAS catalog
-  GWAS <- data.table::fread(gwas_file)
+  # Read GWAS catalog (ignore inconsistent quotes in study titles)
+  GWAS <- data.table::fread(gwas_file, quote = "")
   GWAS$CHR_POS <- as.numeric(GWAS$CHR_POS)
   GWAS <- GWAS[!is.na(GWAS$CHR_POS), ]
   
@@ -525,8 +525,8 @@ find_gwas_overlaps <- function(gtf_path, gwas_file, output_path = NULL) {
   
   # Create GRanges objects
   smORF_granges <- GenomicRanges::GRanges(
-    IRanges::IRanges(start = GTF$start, end = GTF$end),
-    seqnames = GTF$seqnames,
+    IRanges::IRanges(start = BiocGenerics::start(GTF), end = BiocGenerics::end(GTF)),
+    seqnames = GenomeInfoDb::seqnames(GTF),
     iORF_ID = GTF$iORF_id
   )
   

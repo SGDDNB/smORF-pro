@@ -8,3 +8,15 @@ projects/
 
 # Assets folder (downloaded data files)
 assets/
+
+# Generated analysis outputs
+data_preparation/Genetic_information/Conservation/
+data_preparation/Genetic_information/GWAS/
+data_preparation/Genetic_information/fasta/
+data_preparation/Genetic_information/fasta/protein/msa/
+data_preparation/Genetic_information/fasta/protein/dist_mat/
+data_preparation/Genetic_information/fasta/protein/clustalo_skips.log
+
+# Generated app data and plots
+data/
+www/

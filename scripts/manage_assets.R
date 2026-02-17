@@ -113,7 +113,19 @@ scan_assets_folder <- function(asset_type, from_apps = FALSE) {
 #' @param from_apps logical, if TRUE assumes called from apps/ directory
 #' @return data.frame with file information (from scan_assets_folder)
 check_maf_files <- function(from_apps = FALSE) {
-  scan_assets_folder("maf_files", from_apps)
+  maf_files <- scan_assets_folder("maf_files", from_apps)
+  
+  if (nrow(maf_files) == 0) {
+    return(maf_files)
+  }
+  
+  # Add index existence column (.mafindex next to each MAF file)
+  chr_name <- sub("\\.maf(\\.gz)?$", "", maf_files$file, ignore.case = TRUE)
+  index_path <- file.path(dirname(maf_files$path), paste0(chr_name, ".mafindex"))
+  maf_files$index_path <- index_path
+  maf_files$has_index <- file.exists(index_path)
+  
+  maf_files
 }
 
 #' Check for available GWAS catalog files
