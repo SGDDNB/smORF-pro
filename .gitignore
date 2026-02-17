@@ -17,6 +17,10 @@ data_preparation/Genetic_information/fasta/protein/msa/
 data_preparation/Genetic_information/fasta/protein/dist_mat/
 data_preparation/Genetic_information/fasta/protein/clustalo_skips.log
 
+# Local regenerated example GTFs
+data_preparation/Genetic_information/Example_smORFs.gtf
+data_preparation/Genetic_information/Example_smORFs_format.gtf
+
 # Generated app data and plots
 data/
 www/
