@@ -74,8 +74,8 @@ functions in `scripts/process_amino_acid_results.R` (e.g.
 `integrate_amino_acid_results()`).
 
 **Start the app:**
-- From R:
-  `setwd("/home/owen/workspace/smORF-pro"); shiny::runApp("apps/amino_acid_analysis_app.R")`
+- From R (update `PATH_TO_REPO` to your local clone):
+  `setwd("PATH_TO_REPO"); shiny::runApp("apps/amino_acid_analysis_app.R")`
 - From the command line:
   `R -e "shiny::runApp('apps/amino_acid_analysis_app.R')"`
 
@@ -284,8 +284,8 @@ functions in `scripts/process_genetic_information.R` (e.g.
 `find_gwas_overlaps()`).
 
 **Start the app:**
-- From R:
-  `setwd("/home/owen/workspace/smORF-pro"); shiny::runApp("apps/genetic_information_app.R")`
+- From R (update `PATH_TO_REPO` to your local clone):
+  `setwd("PATH_TO_REPO"); shiny::runApp("apps/genetic_information_app.R")`
 - From the command line:
   `R -e "shiny::runApp('apps/genetic_information_app.R')"`
 
