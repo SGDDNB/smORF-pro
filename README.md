@@ -73,6 +73,12 @@ functions in `scripts/process_amino_acid_results.R` (e.g.
 `process_targetp()`, `process_deeploc()`, `process_interproscan()`, and
 `integrate_amino_acid_results()`).
 
+**Start the app:**
+- From R:
+  `setwd("/home/owen/workspace/smORF-pro"); shiny::runApp("apps/amino_acid_analysis_app.R")`
+- From the command line:
+  `R -e "shiny::runApp('apps/amino_acid_analysis_app.R')"`
+
 **App steps:**
 1. Step 0 – Upload annotation CSV  
    Upload your smORF annotation CSV and validate the required columns.  
@@ -276,6 +282,12 @@ functions in `scripts/process_genetic_information.R` (e.g.
 `create_exon_file_from_annotation()`, `run_perl_scripts()`,
 `index_maf_files()`, `run_conservation_analysis()`, and
 `find_gwas_overlaps()`).
+
+**Start the app:**
+- From R:
+  `setwd("/home/owen/workspace/smORF-pro"); shiny::runApp("apps/genetic_information_app.R")`
+- From the command line:
+  `R -e "shiny::runApp('apps/genetic_information_app.R')"`
 
 **App steps (with screenshot placeholders):**
 1. Step 0 – Upload annotation CSV or GTF  
