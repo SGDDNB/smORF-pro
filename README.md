@@ -73,28 +73,28 @@ functions in `scripts/process_amino_acid_results.R` (e.g.
 `process_targetp()`, `process_deeploc()`, `process_interproscan()`, and
 `integrate_amino_acid_results()`).
 
-**App steps (with screenshot placeholders):**
+**App steps:**
 1. Step 0 – Upload annotation CSV  
    Upload your smORF annotation CSV and validate the required columns.  
-   ![Amino acid app - Step 0 upload](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step0_upload.png)
+   ![Amino acid app - Step 0 upload](docs/images/amino_app_step0_upload.png)
 2. Step 1 – Generate FASTA  
    Create a FASTA file from the peptide sequences for external tools.  
-   ![Amino acid app - Step 1 FASTA](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step1_fasta.png)
+   ![Amino acid app - Step 1 FASTA](docs/images/amino_app_step1_fasta.png)
 3. Step 2 – DeepTMHMM (run externally, upload results)  
    Run DeepTMHMM externally, then upload the 3-line output to add topology calls.  
-   ![Amino acid app - Step 2 DeepTMHMM](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step2_deeptmhmm.png)
+   ![Amino acid app - Step 2 DeepTMHMM](docs/images/amino_app_step2_deeptmhmm.png)
 4. Step 3 – TargetP 2.0 (run externally, upload results)  
    Run TargetP externally, then upload the summary to add localisation predictions.  
-   ![Amino acid app - Step 3 TargetP](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step3_targetp.png)
+   ![Amino acid app - Step 3 TargetP](docs/images/amino_app_step3_targetp.png)
 5. Step 4 – Deeploc 2.0 (run externally, upload results)  
    Run Deeploc externally, then upload the CSV summary to add localisation labels.  
-   ![Amino acid app - Step 4 Deeploc](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step4_deeploc.png)
+   ![Amino acid app - Step 4 Deeploc](docs/images/amino_app_step4_deeploc.png)
 6. Step 5 – Interproscan (run externally, upload results)  
    Run Interproscan externally, then upload the TSV to add domain annotations.  
-   ![Amino acid app - Step 5 Interproscan](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step5_interproscan.png)
+   ![Amino acid app - Step 5 Interproscan](docs/images/amino_app_step5_interproscan.png)
 7. Step 6 – Integration & results (save combined outputs)  
    Combine all results into the Annotation table and save project outputs.  
-   ![Amino acid app - Step 6 Results](https://raw.githubusercontent.com/SGDDNB/smORF-pro/main/docs/images/amino_app_step6_results.png)
+   ![Amino acid app - Step 6 Results](docs/images/amino_app_step6_results.png)
 
 The sections below describe the workflow that the app guides you through
 and that the command-line functions implement.
@@ -263,6 +263,42 @@ genetic information such as conservation and finding existing mutations
 from GWAS catalog. For both analysis, a gtf file of the smORFs is
 required. If you don’t have a gtf format yet but you have all the CDS
 coordinates, you can process it to turn it into a gtf.
+
+### Genetic information Shiny app (wizard)
+
+The genetic information wizard lives in `apps/genetic_information_app.R`.
+It guides you through GTF creation, MAF indexing, conservation analysis,
+optional Clustal Omega alignments, GWAS overlap, and integration of
+results.
+
+If you prefer the command line, the same workflow is available via the
+functions in `scripts/process_genetic_information.R` (e.g.
+`create_exon_file_from_annotation()`, `run_perl_scripts()`,
+`index_maf_files()`, `run_conservation_analysis()`, and
+`find_gwas_overlaps()`).
+
+**App steps (with screenshot placeholders):**
+1. Step 0 – Upload annotation CSV or GTF  
+   Provide your annotation CSV (for GTF creation) or a ready GTF file.  
+   ![Genetic app - Step 0 upload](docs/images/genetic_app_step0_upload.png)
+2. Step 1 – GTF creation  
+   Convert the annotation CSV into a GTF using the provided scripts.  
+   ![Genetic app - Step 1 GTF](docs/images/genetic_app_step1_gtf.png)
+3. Step 2 – MAF indexing  
+   Index MAF files (and decompress if needed) for fast access.  
+   ![Genetic app - Step 2 MAF index](docs/images/genetic_app_step2_maf_index.png)
+4. Step 3 – Conservation analysis  
+   Run conservation analysis to generate codon and identity outputs.  
+   ![Genetic app - Step 3 Conservation](docs/images/genetic_app_step3_conservation.png)
+5. Step 4 – Clustal Omega (optional)  
+   Generate MSAs and distance matrices for protein alignments.  
+   ![Genetic app - Step 4 Clustal Omega](docs/images/genetic_app_step4_clustalo.png)
+6. Step 5 – GWAS overlap  
+   Find overlaps between smORF CDS regions and GWAS catalog variants.  
+   ![Genetic app - Step 5 GWAS](docs/images/genetic_app_step5_gwas.png)
+7. Step 6 – Integration & results  
+   Save outputs for downstream use in the main app.  
+   ![Genetic app - Step 6 Results](docs/images/genetic_app_step6_results.png)
 
 ``` r
 Example_genetic_info=read.csv("Example/Example_smORFs.csv")
